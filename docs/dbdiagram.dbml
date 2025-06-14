@@ -1,0 +1,73 @@
+
+Project attendance_app {
+  database_type: "MySQL"
+}
+
+/* ─────────── Users（ユーザ）────────── */
+Table users {
+  id                bigint [pk, increment, note:'UNSIGNED']            // ユーザID
+  name              varchar(255)            [not null]                 // 氏名
+  email             varchar(255)            [unique, not null]         // メールアドレス
+  password          varchar(255)            [not null]                 // パスワードハッシュ
+  role              enum('user','admin')    [not null]                 // 権限
+  email_verified_at datetime                                            // メール認証日時
+  created_at        datetime                [not null]
+  updated_at        datetime                [not null]
+}
+
+/* ─────────── Attendances（勤怠）────────── */
+Table attendances {
+  id         bigint [pk, increment, note:'UNSIGNED']                   // 勤怠ID
+  user_id    bigint [ref: > users.id, not null, note:'UNSIGNED']       // ユーザID
+  work_date  date                           [not null]                 // 勤務日
+  start_at   datetime                       [not null]                 // 出勤打刻
+  end_at     datetime                                                   // 退勤打刻
+  created_at datetime                       [not null]
+  updated_at datetime                       [not null]
+
+  /* 1ユーザ×同日を一意にする */
+  Indexes { (user_id, work_date) [unique] }
+}
+
+/* ─────────── BreakTimes（休憩）────────── */
+Table break_times {
+  id            bigint [pk, increment, note:'UNSIGNED']                                 // 休憩ID
+  attendance_id bigint [ref: > attendances.id, not null, note:'UNSIGNED, ON DELETE CASCADE'] // 勤怠ID
+  start_at      datetime                       [not null]                               // 休憩開始
+  end_at        datetime                                                             // 休憩終了
+  created_at    datetime                       [not null]
+  updated_at    datetime                       [not null]
+
+  Indexes { attendance_id }
+}
+
+/* ─────── Correction Requests（修正申請ヘッダ）────── */
+Table correction_requests {
+  id            bigint [pk, increment, note:'UNSIGNED']                                 // 申請ID
+  attendance_id bigint [ref: > attendances.id, not null, note:'UNSIGNED, ON DELETE CASCADE'] // 対象勤怠ID
+  reason        varchar(255)                     [not null]                              // 申請理由
+  status        enum('pending','approved','rejected') [default:'pending', not null]      // 申請状態
+  reviewed_by   bigint [ref: > users.id, note:'UNSIGNED']                                // 承認者ID
+  reviewed_at   datetime                                                                // 承認日時
+  created_at    datetime                       [not null]
+  updated_at    datetime                       [not null]
+
+  Indexes { attendance_id }
+}
+
+/* ─────── Correction Request Items（修正申請明細）────── */
+Table correction_request_items {
+  id             bigint [pk, increment, note:'UNSIGNED']                                 // 明細ID
+  correction_id  bigint [ref: > correction_requests.id, not null, note:'UNSIGNED, ON DELETE CASCADE'] // 申請ヘッダID
+  break_time_id  bigint [ref: > break_times.id, note:'UNSIGNED, ON DELETE SET NULL']                   // 対象休憩ID
+  field          enum('start_time','end_time','break_start','break_end','note') [not null]             // 修正対象
+  before_value   varchar(255)                     [not null]                              // 旧値
+  after_value    varchar(255)                     [not null]                              // 新値
+  created_at     datetime                         [not null]
+  updated_at     datetime                         [not null]
+
+  Indexes {
+    correction_id
+    (correction_id, field, break_time_id) [unique]  // 二重明細防止（NULLを含む場合）
+  }
+}

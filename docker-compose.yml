@@ -40,3 +40,11 @@ services:
             - mysql
         ports:
             - 8080:80
+
+
+    mailhog:
+        image: mailhog/mailhog:v1.0.1
+        container_name: mailhog
+        ports:
+            - "8025:8025" # GUI
+            - "1025:1025" # SMTP
