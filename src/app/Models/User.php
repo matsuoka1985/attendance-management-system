@@ -6,6 +6,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
 
 class User extends Authenticatable
 {
@@ -44,5 +46,22 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /* ───── リレーション ───── */
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
+    public function correctionRequestsReviewed(): HasMany   
+    {
+        return $this->hasMany(CorrectionRequest::class, 'reviewed_by');
+    }
+
+    /* ───── 便利メソッド ───── */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
     }
 }
