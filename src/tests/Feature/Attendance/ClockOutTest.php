@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Attendance;
 use App\Models\TimeLog;
 use Carbon\Carbon;
+use App\Http\Controllers\User\AttendanceStampController;
 
 class ClockOutTest extends TestCase
 {
@@ -59,7 +60,7 @@ class ClockOutTest extends TestCase
         $this->actingAs($user);
 
         // 2. 出勤処理
-        $controller = new \App\Http\Controllers\User\AttendanceStampController;
+        $controller = new AttendanceStampController;
         $attendance = $controller->performClockIn();
 
         sleep(1); // 打刻順保障
