@@ -227,19 +227,51 @@ class AttendanceStampController extends Controller
 
     /* ───────── 退勤 ───────── */
 
+    // public function end()
+    // {
+    //     $attendance = $this->todayAttendanceOrFail();
+
+    //     $logs = $this->filteredTimeLogs($attendance);
+    //     $last = $logs->last();
+
+    //     if ($last && $last->type === 'clock_out') {
+    //         return back()->with('error', 'すでに退勤済みです。');
+    //     }
+
+    //     if ($last && $last->type === 'break_start') {
+    //         return back()->with('error', '休憩中は退勤できません。');
+    //     }
+
+    //     $attendance->timeLogs()->create([
+    //         'logged_at' => now(),
+    //         'type'      => 'clock_out',
+    //     ]);
+
+    //     return back()->with('success', '退勤しました。');
+    // }
+
     public function end()
     {
-        $attendance = $this->todayAttendanceOrFail();
+        try {
+            $attendance = $this->performClockOut();
+            return back()->with('success', '退勤しました。');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
 
+    public function performClockOut(): Attendance
+    {
+        $attendance = $this->todayAttendanceOrFail();
         $logs = $this->filteredTimeLogs($attendance);
         $last = $logs->last();
 
         if ($last && $last->type === 'clock_out') {
-            return back()->with('error', 'すでに退勤済みです。');
+            throw new \RuntimeException('すでに退勤済みです。');
         }
 
         if ($last && $last->type === 'break_start') {
-            return back()->with('error', '休憩中は退勤できません。');
+            throw new \RuntimeException('休憩中は退勤できません。');
         }
 
         $attendance->timeLogs()->create([
@@ -247,7 +279,7 @@ class AttendanceStampController extends Controller
             'type'      => 'clock_out',
         ]);
 
-        return back()->with('success', '退勤しました。');
+        return $attendance;
     }
 
     /* ───────── ヘルパ ───────── */
