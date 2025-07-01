@@ -1,0 +1,69 @@
+
+Project attendance_app {
+  database_type: "MySQL"
+}
+
+/* ─────────── Users（ユーザ）────────── */
+Table users {
+  id                bigint [pk, increment, note:'UNSIGNED']            // ユーザID
+  name              varchar(255)            [not null]                 // 氏名
+  email             varchar(255)            [unique, not null]         // メールアドレス
+  password          varchar(255)            [not null]                 // パスワードハッシュ
+  role              enum('user','admin')    [not null]                 // 権限
+  email_verified_at datetime                                            // メール認証日時
+  created_at        datetime                [not null]
+  updated_at        datetime                [not null]
+}
+
+/* ─────────── Attendances（勤怠）────────── */
+Table attendances {
+  id         bigint [pk, increment, note:'UNSIGNED']                   // 勤怠ID
+  user_id    bigint [ref: > users.id, not null, note:'UNSIGNED']       // ユーザID
+  work_date  date                           [not null]                 // 勤務日
+  created_at datetime                       [not null]
+  updated_at datetime                       [not null]
+
+  Indexes {
+    user_id, work_date [unique]
+  }
+}
+//修正申請用の個々の打刻ログテーブルも作成しようと思ったが、以下のtime_logsテーブルとカラムが重複するので
+//以下のテーブルで併用することにする。修正申請修正申請
+/* ─────────── TimeLogs（打刻ログ）────────── */
+Table time_logs {
+  id             bigint [pk, increment, note:'UNSIGNED']                   // 打刻ログID
+  /*  ─ attendance_id ─────────────────────────────────────────────
+     - 通常の実運用ログ  : 勤怠が確定しているため NOT NULL
+     - 修正申請ドラフト : correction_request_id が付くまでは NULL を許容
+     → DB では nullable とし、下記 CHECK で「片方は必ず埋まる」ことを担保
+  */
+  attendance_id  bigint [ref: > attendances.id, nullable, note:'UNSIGNED, ON DELETE SET NULL']
+
+  logged_at      datetime [not null]                                       // 打刻時刻
+  type           enum('clock_in','clock_out','break_start','break_end') [not null] // 打刻種別
+  correction_request_id bigint [ref: > correction_requests.id, nullable, note:'UNSIGNED'] // 修正申請のドラフトなら非NULL
+  created_at     datetime [not null]
+  updated_at     datetime [not null]
+
+  /*  ─ 片方必須チェック  ───────────────────────────
+  */
+  Note: 'CHECK (attendance_id IS NOT NULL OR correction_request_id IS NOT NULL)'
+}
+
+
+
+/* ─────── Correction Requests（修正申請ヘッダ）────── */
+Table correction_requests {
+  id            bigint [pk, increment, note:'UNSIGNED']
+  user_id       bigint [ref: > users.id, not null, note:'UNSIGNED']            // 申請者
+  attendance_id bigint [ref: > attendances.id, note:'UNSIGNED, ON DELETE CASCADE'] // 修正対象の元勤怠ID
+
+  reason        varchar(255) [not null] // 修正理由
+
+  status        enum('pending','approved','rejected') [default: 'pending', not null] // 申請状態（保留・承認・却下）
+  reviewed_by   bigint [ref: > users.id, note:'UNSIGNED'] // 承認者ユーザID
+  reviewed_at   datetime                                 // 承認日時
+
+  created_at    datetime [not null]
+  updated_at    datetime [not null]
+}
