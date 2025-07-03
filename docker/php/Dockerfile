@@ -14,7 +14,17 @@ RUN curl -sS https://getcomposer.org/installer | php -- \
 
 # ---------- bash + Node 20 LTS ----------
 RUN apk add --no-cache bash nodejs-lts npm
-#           ↑            ↑
-# Alpine の nodejs-lts は現時点で v20.x に紐付く
+
+# ---------- Dusk 用の Chrome + 依存パッケージ ----------
+RUN apk add --no-cache \
+  chromium \
+  nss \
+  freetype \
+  harfbuzz \
+  ttf-freefont \
+  && rm -rf /var/cache/*
+
+ENV CHROME_BIN=/usr/bin/chromium-browser \
+  DUSK_DRIVER_URL=http://selenium:4444/wd/hub
 
 WORKDIR /var/www

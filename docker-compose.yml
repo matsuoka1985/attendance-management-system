@@ -48,3 +48,11 @@ services:
         ports:
             - "8025:8025" # GUI
             - "1025:1025" # SMTP
+
+    selenium:
+        image: seleniarm/standalone-chromium:latest
+        ports:
+            - "4444:4444"
+        shm_size: '2gb'
+        volumes:
+            - /dev/shm:/dev/shm
