@@ -82,7 +82,7 @@ class StampCorrectionRequestController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * 勤怠打刻修正申請処理
      */
     public function store(AttendanceCorrectionRequest $request)
     {
