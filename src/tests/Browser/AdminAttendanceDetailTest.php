@@ -92,4 +92,60 @@ class AdminAttendanceDetailTest extends DuskTestCase
                 ->screenshot('admin_attendance_detail_ok');
         });
     }
+
+    #[Test]
+    public function 詳細を押下すると、その日の勤怠詳細画面に遷移する(): void
+    {
+        /* ---------- ① テストデータ ---------- */
+        // 管理者・スタッフ
+        $admin = User::factory()->create(['role' => 'admin']);
+        $staff = User::factory()->create(['role' => 'user']);
+
+        // 当月 1 日
+        $day = Carbon::today()->startOfMonth();        // 例) 2025-07-01
+
+        // 勤怠 & ログ 09-18（休憩 12-13）
+        $attendance = Attendance::factory()->create([
+            'user_id'   => $staff->id,
+            'work_date' => $day->toDateString(),
+        ]);
+
+        TimeLog::factory()->createMany([
+            ['attendance_id' => $attendance->id, 'logged_at' => $day->copy()->setTime(9, 0),  'type' => 'clock_in'],
+            ['attendance_id' => $attendance->id, 'logged_at' => $day->copy()->setTime(12, 0), 'type' => 'break_start'],
+            ['attendance_id' => $attendance->id, 'logged_at' => $day->copy()->setTime(13, 0), 'type' => 'break_end'],
+            ['attendance_id' => $attendance->id, 'logged_at' => $day->copy()->setTime(18, 0), 'type' => 'clock_out'],
+        ]);
+
+        // 一覧で表示される日付ラベル (MM/DD(ddd))
+        $rowLabel   = $day->isoFormat('MM/DD(ddd)');
+        // 勤怠詳細ページの URL（リンクは href で完全一致）
+        $detailHref = route('admin.attendance.show', $attendance->id);
+
+        /* ---------- ② ブラウザテスト ---------- */
+        $this->browse(function (Browser $browser) use ($admin, $staff, $rowLabel, $detailHref, $day, $attendance) {
+
+            // ─ スタッフ月次勤怠一覧（当月）を開く
+            $browser->loginAs($admin, 'admin')
+                ->visit(route('admin.staff_attendance.index', $staff->id))
+                ->waitForText($rowLabel)               // 行が描画されるまで待機
+                ->assertSee($rowLabel);
+
+            // ─ 行内リンク〔詳細〕をクリック（href で一意に特定）
+            $browser->click("a[href=\"{$detailHref}\"]")
+                ->waitForLocation("/admin/attendance/{$attendance->id}");
+
+            // ─ 勤怠詳細ページで情報一致確認
+            $browser->assertSee('勤怠詳細')               // 見出し
+                ->assertSee($staff->name)            // 氏名
+                // 日付は「YYYY年」「n月j日」の 2 つの文字列で出ているレイアウト
+                ->assertSee($day->year . '年')
+                ->assertSee($day->format('n月j日'))
+                ->assertValue('input[name="start_at"]', '09:00')
+                ->assertValue('input[name="end_at"]',   '18:00')
+                ->assertValue('input[name="breaks[0][start]"]', '12:00')
+                ->assertValue('input[name="breaks[0][end]"]',   '13:00')
+                ->screenshot('admin_attendance_detail_navigation_ok');
+        });
+    }
 }
