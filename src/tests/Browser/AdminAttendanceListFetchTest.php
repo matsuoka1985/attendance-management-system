@@ -149,4 +149,97 @@ class AdminAttendanceListFetchTest extends DuskTestCase
             }
         });
     }
+
+    #[Test]
+    public function 「翌日」を押下した時に次の日の勤怠情報が表示される(): void
+    {
+        /* ────── 1. 事前データ ────── */
+        // 管理者
+        $admin = User::factory()->create([
+            'role'              => 'admin',
+            'email_verified_at' => now(),
+        ]);
+
+        // テスト対象日: 今日の前日 (= 昨日) とその前日
+        $yesterday        = Carbon::yesterday()->startOfDay();           // 2025-xx-yy 00:00
+        $dayBefore        = $yesterday->copy()->subDay();                // 前々日
+        $nextDateString   = $yesterday->toDateString();                  // ボタン value 用
+        $yesterdayH1      = $yesterday->format('Y年n月j日');             // タイトル表記
+        $yesterdaySlash   = $yesterday->format('Y/m/d');                 // カレンダー表記
+        $dayBeforeSlash   = $dayBefore->format('Y/m/d');
+
+        // スタッフ 3 人 & 勤怠 + 休憩 1h（12:00-13:00）
+        $staffs = User::factory()->count(3)->create([
+            'role'              => 'user',
+            'email_verified_at' => now(),
+        ]);
+
+        foreach ($staffs as $staff) {
+            $att = Attendance::factory()->create([
+                'user_id'   => $staff->id,
+                'work_date' => $yesterday->toDateString(),
+            ]);
+
+            TimeLog::insert([
+                [ // 出勤 09:00
+                    'attendance_id' => $att->id,
+                    'logged_at'     => $yesterday->copy()->setTime(9, 0),
+                    'type'          => 'clock_in',
+                ],
+                [ // 休憩開始 12:00
+                    'attendance_id' => $att->id,
+                    'logged_at'     => $yesterday->copy()->setTime(12, 0),
+                    'type'          => 'break_start',
+                ],
+                [ // 休憩終了 13:00
+                    'attendance_id' => $att->id,
+                    'logged_at'     => $yesterday->copy()->setTime(13, 0),
+                    'type'          => 'break_end',
+                ],
+                [ // 退勤 18:00
+                    'attendance_id' => $att->id,
+                    'logged_at'     => $yesterday->copy()->setTime(18, 0),
+                    'type'          => 'clock_out',
+                ],
+            ]);
+        }
+
+        /* ────── 2. ブラウザ操作 ────── */
+        $this->browse(function (Browser $browser) use (
+            $admin,
+            $staffs,
+            $dayBefore,
+            $dayBeforeSlash,
+            $yesterday,
+            $yesterdaySlash,
+            $yesterdayH1,
+            $nextDateString
+        ) {
+            $browser->loginAs($admin, 'admin')
+
+                // 前々日の一覧を開く
+                ->visit(route('admin.attendance.index', ['date' => $dayBefore->toDateString()]))
+                ->waitForText($dayBeforeSlash)
+
+                // ───────── 「翌日」ボタン押下 ─────────
+                //   button[name=date] の value 属性で正確にクリック
+                ->click('button[name="date"][value="' . $nextDateString . '"]')
+
+                // ────── 3. 検証 ──────
+                // カレンダー欄 (Y/m/d)
+                ->waitForText($yesterdaySlash, 5)
+                // タイトル (Y年n月j日)
+                ->assertSee($yesterdayH1)
+
+                // テーブルの中身（名前 / 出退勤 / 休憩 1:00）を 3 人分確認
+                ->within('table tbody', function (Browser $tbody) use ($staffs) {
+                    foreach ($staffs as $staff) {
+                        $tbody->assertSee($staff->name)
+                            ->assertSee('09:00')
+                            ->assertSee('18:00')
+                            ->assertSee('1:00');
+                    }
+                });
+        });
+    }
 }
