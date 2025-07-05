@@ -176,4 +176,180 @@ class AdminApprovalTest extends DuskTestCase
 
         });
     }
+
+    #[Test]
+    public function 修正申請の詳細内容が正しく表示されている(): void
+    {
+        /* ───── 1. 事前データ ───── */
+
+        // 管理者
+        $admin = User::factory()->create([
+            'role'              => 'admin',
+            'email_verified_at' => now(),
+        ]);
+
+        // 一般ユーザー
+        $staff = User::factory()->create([
+            'name'              => '西 玲奈',
+            'role'              => 'user',
+            'email_verified_at' => now(),
+        ]);
+
+        // 勤務日：前月末
+        $workDay = Carbon::today()->subMonthNoOverflow()->endOfMonth();   // 例）2025-06-30
+
+        // 勤怠行
+        $attendance = Attendance::factory()->create([
+            'user_id'   => $staff->id,
+            'work_date' => $workDay->toDateString(),
+        ]);
+
+        /* ----- ① 元（確定）ログ：09-18 ＋ 12-13 休憩 ----- */
+        TimeLog::factory()->createMany([
+            ['attendance_id' => $attendance->id, 'type' => 'clock_in',    'logged_at' => $workDay->copy()->setTime(9, 0)],
+            ['attendance_id' => $attendance->id, 'type' => 'break_start', 'logged_at' => $workDay->copy()->setTime(12, 0)],
+            ['attendance_id' => $attendance->id, 'type' => 'break_end',   'logged_at' => $workDay->copy()->setTime(13, 0)],
+            ['attendance_id' => $attendance->id, 'type' => 'clock_out',   'logged_at' => $workDay->copy()->setTime(18, 0)],
+        ]);
+
+        /* ----- ② 修正申請ヘッダ（pending） ----- */
+        $correction = CorrectionRequest::factory()->create([
+            'user_id'       => $staff->id,
+            'attendance_id' => $attendance->id,
+            'reason'        => '電車遅延のため',
+            'status'        => CorrectionRequest::STATUS_PENDING,
+            'created_at'    => $workDay->copy()->addDay(),   // 申請日＝翌日
+        ]);
+
+        /* ----- ③ 申請ログ：退勤 20:00 に延長 ----- */
+        TimeLog::factory()->createMany([
+            [
+                'attendance_id' => $attendance->id,
+                'correction_request_id' => $correction->id,
+                'type' => 'clock_in',
+                'logged_at' => $workDay->copy()->setTime(9, 0)
+            ],
+            [
+                'attendance_id' => $attendance->id,
+                'correction_request_id' => $correction->id,
+                'type' => 'break_start',
+                'logged_at' => $workDay->copy()->setTime(12, 0)
+            ],
+            [
+                'attendance_id' => $attendance->id,
+                'correction_request_id' => $correction->id,
+                'type' => 'break_end',
+                'logged_at' => $workDay->copy()->setTime(13, 0)
+            ],
+            [
+                'attendance_id' => $attendance->id,
+                'correction_request_id' => $correction->id,
+                'type' => 'clock_out',
+                'logged_at' => $workDay->copy()->setTime(20, 0)
+            ],
+        ]);
+
+        /* ───── 2. ブラウザテスト ───── */
+        $this->browse(function (Browser $browser) use ($admin, $correction, $staff, $workDay) {
+
+            $browser->loginAs($admin, 'admin')
+                ->visit(route('admin.request.approve', $correction->id))
+
+                /*  基本情報（ヘッダ） */
+                ->assertSee($staff->name)
+                ->assertSee($workDay->year . '年')
+                ->assertSee($workDay->format('n月j日'))
+
+                /*  修正申請時刻 */
+                ->assertSee('20:00')
+
+                /*  備考 */
+                ->assertSee('電車遅延のため')
+
+                ->screenshot('admin_correction_request_detail_ok');
+        });
+    }
+
+    #[Test]
+    public function 修正申請の承認処理が正しく行われる(): void
+    {
+        /* ───── 1. 事前データ ───── */
+
+        // 管理者
+        $admin = User::factory()->create([
+            'role'              => 'admin',
+            'email_verified_at' => now(),
+        ]);
+
+        // 一般ユーザー（＝申請者）
+        $staff = User::factory()->create([
+            'name'              => '西 玲奈',
+            'role'              => 'user',
+            'email_verified_at' => now(),
+        ]);
+
+        // 勤務日：前月末
+        $workDay = Carbon::today()->subMonthNoOverflow()->endOfMonth();   // 例）2025-06-30
+
+        // ① 元の勤怠行（09-18 ＋ 12-13 休憩）
+        $attendance = Attendance::factory()->create([
+            'user_id'   => $staff->id,
+            'work_date' => $workDay->toDateString(),
+        ]);
+
+        TimeLog::factory()->createMany([
+            ['attendance_id' => $attendance->id, 'type' => 'clock_in',    'logged_at' => $workDay->copy()->setTime(9, 0)],
+            ['attendance_id' => $attendance->id, 'type' => 'break_start', 'logged_at' => $workDay->copy()->setTime(12, 0)],
+            ['attendance_id' => $attendance->id, 'type' => 'break_end',   'logged_at' => $workDay->copy()->setTime(13, 0)],
+            ['attendance_id' => $attendance->id, 'type' => 'clock_out',   'logged_at' => $workDay->copy()->setTime(18, 0)],
+        ]);
+
+        // ② pending 修正申請（退勤を 20:00 に延長）
+        $correction = CorrectionRequest::factory()->create([
+            'user_id'       => $staff->id,
+            'attendance_id' => $attendance->id,
+            'reason'        => '電車遅延のため',
+            'status'        => CorrectionRequest::STATUS_PENDING,
+            'created_at'    => $workDay->copy()->addDay(),   // 申請日＝翌日
+        ]);
+
+        TimeLog::factory()->createMany([
+            // 変更前と同じ 09-12-13 の３本
+            ['attendance_id' => $attendance->id, 'correction_request_id' => $correction->id, 'type' => 'clock_in',    'logged_at' => $workDay->copy()->setTime(9, 0)],
+            ['attendance_id' => $attendance->id, 'correction_request_id' => $correction->id, 'type' => 'break_start', 'logged_at' => $workDay->copy()->setTime(12, 0)],
+            ['attendance_id' => $attendance->id, 'correction_request_id' => $correction->id, 'type' => 'break_end',   'logged_at' => $workDay->copy()->setTime(13, 0)],
+            // ★ 退勤 20:00（これが確定後に反映されるはず）
+            ['attendance_id' => $attendance->id, 'correction_request_id' => $correction->id, 'type' => 'clock_out',   'logged_at' => $workDay->copy()->setTime(20, 0)],
+        ]);
+
+        /* ───── 2. ブラウザテスト ───── */
+        $this->browse(function (Browser $browser) use ($admin, $correction, $attendance, $workDay) {
+
+            // ① 修正申請詳細 → 「承認」ボタンを押す
+            $browser->loginAs($admin, 'admin')
+                ->visit(route('admin.request.approve', $correction->id))
+                ->waitForText('承認')            // ボタン描画待ち
+                ->press('承認')                  // POST → approveExecute
+                ->waitForText('承認済み')        // リダイレクト後、ボタンが「承認済み」に変わる
+                ->assertSee('承認済み');
+
+            // ② 勤怠詳細にジャンプして “20:00” が反映済みか確認
+            $browser->visit(route('admin.attendance.show', $attendance->id))
+                ->waitForText($workDay->format('n月j日'))
+                ->assertInputValue('end_at', '20:00')   // 退勤が 20:00 に更新済み
+                ->assertDontSee('18:00');  // 18:00 は表示されない（削除済み）
+        });
+
+        /* ───── 3. DB アサーション ───── */
+        $this->assertDatabaseHas('correction_requests', [
+            'id'     => $correction->id,
+            'status' => CorrectionRequest::STATUS_APPROVED,
+        ]);
+
+        $this->assertDatabaseHas('time_logs', [
+            'attendance_id' => $attendance->id,
+            'type'          => 'clock_out',
+            'logged_at'     => $workDay->copy()->setTime(20, 0),  // ← 新退勤
+        ]);
+    }
 }

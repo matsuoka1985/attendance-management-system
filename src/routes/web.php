@@ -45,7 +45,7 @@ Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $requ
     }
 
     $request->fulfill();
-    return view('auth.verification-complete'); // 自作ビュー
+    return redirect()->route('attendance.stamp')->with('mail_status', 'メール認証が完了しました。ご確認ありがとうございます。');
 })->middleware(['auth', 'signed'])->name('verification.verify');
 
 
