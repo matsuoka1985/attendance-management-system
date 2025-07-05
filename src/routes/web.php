@@ -19,9 +19,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 
 
 
-Route::get('/', function () {
-    return view('welcome');
-});
+
 
 //テストのルーティング定義。最後の削除してしまってok。
 Route::get('/test', function () {

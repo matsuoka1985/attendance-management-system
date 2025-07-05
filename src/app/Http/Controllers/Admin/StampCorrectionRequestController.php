@@ -171,7 +171,7 @@ class StampCorrectionRequestController extends Controller
     }
 
     /**
-     * 修正申請詳細（承認・却下用プレビュー画面）
+     * 修正申請詳細（承認用プレビュー画面）
      *
      * ルート : GET /admin/stamp_correction_request/approve/{correction_request}
      * name  : admin.request.approve

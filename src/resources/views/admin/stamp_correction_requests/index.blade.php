@@ -81,7 +81,7 @@
                                 @forelse($approvedRequests as $req)
                                     <tr class="border-b border-gray-200 text-gray-500 font-semibold">
                                         <td class="py-3 px-2 sm:px-4">
-                                            {{ $req->status === 'approved' ? '承認' : '却下' }}
+                                            {{ $req->status === 'approved' ? '承認' : '' }}
                                         </td>
                                         <td class="py-3 px-2 sm:px-4">{{ $req->user->name }}</td>
                                         <td class="py-3 px-2 sm:px-4">
