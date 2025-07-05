@@ -42,14 +42,15 @@ class StampCorrectionRequestController extends Controller
             ->latest('created_at')
             ->get();
 
-        /* ───────── 承認／却下済み ───────── */
+        /* ───────── 2. 承認／却下済み ───────── */
         $approvedRequests = CorrectionRequest::with($baseWith + ['reviewer:id,name'])
             ->where('user_id', $user->id)
             ->whereIn('status', [
                 CorrectionRequest::STATUS_APPROVED,
                 CorrectionRequest::STATUS_REJECTED,
             ])
-            ->orderByRaw('COALESCE(reviewed_at, updated_at) DESC')
+            // 一覧でも「申請日（created_at）」基準で新しい順に並べる
+            ->latest('created_at')
             ->get();
 
         /* ── 対象日（target_date）を付与 ──
@@ -65,6 +66,9 @@ class StampCorrectionRequestController extends Controller
 
         $addTarget($pendingRequests);
         $addTarget($approvedRequests);
+
+        // 承認済み一覧でも申請日時（created_at）をビューで使いやすいように統一キーで渡す
+        $approvedRequests->each(fn ($r) => $r->applied_at = $r->created_at);
 
         return view(
             'user.stamp_correction_requests.index',

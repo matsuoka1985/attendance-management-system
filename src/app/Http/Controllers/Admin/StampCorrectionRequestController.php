@@ -17,13 +17,12 @@ class StampCorrectionRequestController extends Controller
 {
     /**
      * すべての一般ユーザーが提出した修正申請の一覧
-     *
      * GET /admin/stamp_correction_request/list
      * name: admin.request.index
      */
     public function index()
     {
-        // ───────── 1. 承認待ち ─────────
+        /* ───────── 1. 承認待ち ───────── */
         $pendingRequests = CorrectionRequest::with([
             'attendance:id,user_id,work_date',
             'attendance.user:id,name',
@@ -31,36 +30,40 @@ class StampCorrectionRequestController extends Controller
             'timeLogs' => fn($q) => $q->orderBy('logged_at'),
         ])
             ->where('status', CorrectionRequest::STATUS_PENDING)
-            ->latest('created_at')
+            ->latest('created_at')                           // 申請日時の降順
             ->get()
             ->each(function (CorrectionRequest $req) {
-                /* 対象日を決定 */
+                // ─ 対象日（勤怠が無い場合はログ先頭の日）
                 $req->target_date = $req->attendance
-                    ? $req->attendance->work_date                       // 勤怠がある
-                    : optional($req->timeLogs->first())->logged_at?->toDateString(); // 勤怠が無い
+                    ? $req->attendance->work_date
+                    : optional($req->timeLogs->first())->logged_at?->toDateString();
+
+                // ─ 一覧で使う申請日時
+                $req->apply_date  = $req->created_at;
             });
 
-        // ───────── 2. 承認／却下済み ─────────
+        /* ───────── 2. 承認済み ───────── */
         $approvedRequests = CorrectionRequest::with([
             'attendance:id,user_id,work_date',
             'attendance.user:id,name',
             'user:id,name',
             'reviewer:id,name',
-            'timeLogs' => fn($q) => $q->orderBy('logged_at'),          // 後続画面で使うかも
+            'timeLogs' => fn($q) => $q->orderBy('logged_at'),
         ])
-            ->whereIn('status', [
-                CorrectionRequest::STATUS_APPROVED,
-                CorrectionRequest::STATUS_REJECTED,
-            ])
-            ->orderByRaw('COALESCE(reviewed_at, updated_at) DESC')
+            ->where('status', CorrectionRequest::STATUS_APPROVED)
+            ->latest('created_at')                           // ★ 申請日時の降順で統一
             ->get()
             ->each(function (CorrectionRequest $req) {
+                // ─ 対象日
                 $req->target_date = $req->attendance
                     ? $req->attendance->work_date
                     : optional($req->timeLogs->first())->logged_at?->toDateString();
+
+                // ─ 一覧で使う申請日時（承認済みでも created_at を表示）
+                $req->apply_date  = $req->created_at;
             });
 
-        // ───────── 3. ビュー ─────────
+        /* ───────── 3. ビュー ───────── */
         return view(
             'admin.stamp_correction_requests.index',
             compact('pendingRequests', 'approvedRequests')
