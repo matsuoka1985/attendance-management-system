@@ -58,30 +58,7 @@ class AttendanceStampController extends Controller
 
     /* ───────── 出勤 ───────── */
 
-    // public function start()
-    // {
-    //     $user  = Auth::user();
-    //     $today = Carbon::today();
 
-    //     DB::transaction(function () use ($user, $today) {
-    //         $attendance = Attendance::firstOrCreate([
-    //             'user_id'   => $user->id,
-    //             'work_date' => $today,
-    //         ]);
-
-    //         $logs = $this->filteredTimeLogs($attendance);
-    //         if ($logs->contains('type', 'clock_in')) {
-    //             abort(403, '本日はすでに出勤済みです。');
-    //         }
-
-    //         $attendance->timeLogs()->create([
-    //             'logged_at' => now(),
-    //             'type'      => 'clock_in',
-    //         ]);
-    //     });
-
-    //     return back()->with('success', '出勤しました。');
-    // }
 
     // 本体から出勤処理を分離
     public function start()
@@ -119,30 +96,7 @@ class AttendanceStampController extends Controller
 
 
 
-    /* ───────── 休憩開始 ───────── */
 
-    // public function startBreak()
-    // {
-    //     $attendance = $this->todayAttendanceOrFail();
-
-    //     $logs = $this->filteredTimeLogs($attendance);
-
-    //     if ($logs->contains('type', 'clock_out')) {
-    //         return back()->with('error', '退勤後のため操作できません。');
-    //     }
-
-    //     $last = $logs->last();
-    //     if ($last && $last->type === 'break_start') {
-    //         return back()->with('error', 'すでに休憩中です。');
-    //     }
-
-    //     $attendance->timeLogs()->create([
-    //         'logged_at' => now(),
-    //         'type'      => 'break_start',
-    //     ]);
-
-    //     return back()->with('success', '休憩を開始しました。');
-    // }
     public function startBreak()
     {
         try {
@@ -176,26 +130,6 @@ class AttendanceStampController extends Controller
     }
 
 
-    /* ───────── 休憩終了 ───────── */
-
-    // public function endBreak()
-    // {
-    //     $attendance = $this->todayAttendanceOrFail();
-
-    //     $logs = $this->filteredTimeLogs($attendance);
-    //     $last = $logs->last();
-    //     if (!$last || $last->type !== 'break_start') {
-    //         return back()->with('error', '休憩中ではありません。');
-    //     }
-
-    //     $attendance->timeLogs()->create([
-    //         'logged_at' => now(),
-    //         'type'      => 'break_end',
-    //     ]);
-
-    //     return back()->with('success', '休憩を終了しました。');
-    // }
-
     public function endBreak()
     {
         try {
@@ -226,29 +160,6 @@ class AttendanceStampController extends Controller
 
 
     /* ───────── 退勤 ───────── */
-
-    // public function end()
-    // {
-    //     $attendance = $this->todayAttendanceOrFail();
-
-    //     $logs = $this->filteredTimeLogs($attendance);
-    //     $last = $logs->last();
-
-    //     if ($last && $last->type === 'clock_out') {
-    //         return back()->with('error', 'すでに退勤済みです。');
-    //     }
-
-    //     if ($last && $last->type === 'break_start') {
-    //         return back()->with('error', '休憩中は退勤できません。');
-    //     }
-
-    //     $attendance->timeLogs()->create([
-    //         'logged_at' => now(),
-    //         'type'      => 'clock_out',
-    //     ]);
-
-    //     return back()->with('success', '退勤しました。');
-    // }
 
     public function end()
     {

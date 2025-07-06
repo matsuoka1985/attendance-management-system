@@ -5,7 +5,6 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AttendanceCorrectionRequest;
 use App\Models\Attendance;
-use App\Models\CorrectionBreakTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\CorrectionRequest;
@@ -21,7 +20,7 @@ class StampCorrectionRequestController extends Controller
     /**
      * 一般ユーザー: 自分が出した修正申請の一覧
      *   - pending   : 承認待ち
-     *   - approved… : 承認／却下済み
+     *   - approved… : 承認済み
      */
     public function index(Request $request)
     {
@@ -42,12 +41,11 @@ class StampCorrectionRequestController extends Controller
             ->latest('created_at')
             ->get();
 
-        /* ───────── 2. 承認／却下済み ───────── */
+        /* ───────── 2. 承認済み ───────── */
         $approvedRequests = CorrectionRequest::with($baseWith + ['reviewer:id,name'])
             ->where('user_id', $user->id)
             ->whereIn('status', [
                 CorrectionRequest::STATUS_APPROVED,
-                CorrectionRequest::STATUS_REJECTED,
             ])
             // 一覧でも「申請日（created_at）」基準で新しい順に並べる
             ->latest('created_at')
@@ -160,37 +158,5 @@ class StampCorrectionRequestController extends Controller
 
         return redirect()->route('request.index')
             ->with('success', '修正申請を送信しました。');
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
     }
 }

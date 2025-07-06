@@ -23,7 +23,7 @@ return new class extends Migration {
             $table->string('reason', 255); // 修正理由
 
             // ── ステータスとレビュワー情報 ─────────────
-            $table->enum('status', ['pending', 'approved', 'rejected'])
+            $table->enum('status', ['pending', 'approved'])
                 ->default('pending'); // 修正状態
 
             $table->foreignId('reviewed_by') // 承認者ユーザID（NULL許可）

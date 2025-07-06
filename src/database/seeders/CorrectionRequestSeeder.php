@@ -28,7 +28,7 @@ class CorrectionRequestSeeder extends Seeder
             ->each(function (Attendance $att) use ($admin) {
 
                 /* === ① 申請ヘッダ === */
-                $statusRand = rand(1, 4);               // 1-2:approved, 3:rejected, 4:pending
+                $statusRand = rand(1, 3);               // 1‑2: approved, 3: pending
 
                 $baseFactory     = CorrectionRequest::factory()
                     ->for($att->user, 'user')
@@ -36,7 +36,6 @@ class CorrectionRequestSeeder extends Seeder
 
                 $selectedFactory = match ($statusRand) {
                     1, 2   => $baseFactory->approved($admin),
-                    3      => $baseFactory->rejected($admin),
                     default => $baseFactory,            // pending
                 };
 

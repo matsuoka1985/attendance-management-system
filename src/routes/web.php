@@ -19,13 +19,6 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 
 
 
-
-
-//テストのルーティング定義。最後の削除してしまってok。
-Route::get('/test', function () {
-    return view('test');
-});
-
 // 自作ルート メール確認通知表示
 Route::get('/email/verify', function () {
     if (auth()->user()?->hasVerifiedEmail()) {
@@ -111,7 +104,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //　勤怠詳細
     Route::get('/attendance/{id}', [UserAttendanceController::class, 'show'])
         ->name('attendance.show');
-
 
 
     // 申請一覧
