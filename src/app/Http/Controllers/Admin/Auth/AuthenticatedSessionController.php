@@ -34,7 +34,7 @@ class AuthenticatedSessionController extends Controller
                 return back()->withErrors(['email' => 'ログイン情報が登録されていません。']);
             }
 
-            return redirect()->intended(route('admin.dashboard'));
+            return redirect()->intended(route('admin.attendance.index'));
         }
 
         return back()->withErrors(['email' => 'ログイン情報が登録されていません。']);

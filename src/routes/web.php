@@ -62,8 +62,8 @@ Route::post('/register', [RegisteredUserController::class, 'store'])
 //自作ルート
 Route::post('/login', [LoginController::class, 'store'])->name('login');
 
-
-
+//ルートへのアクセス
+Route::redirect('/', '/login');
 
 
 
@@ -126,12 +126,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::prefix('admin')
     ->as('admin.')
     ->group(function () {
-        //.仮ルート。あとで削除する。
-        Route::get('/dashboard', function () {
-            return "テストです";
-        })
-            ->middleware('auth:admin')
-            ->name('dashboard');
+        // //.仮ルート。あとで削除する。
+        // Route::get('/dashboard', function () {
+        //     return "テストです";
+        // })
+        //     ->middleware('auth:admin')
+        //     ->name('dashboard');
 
         // --- ログイン画面（ゲスト専用） ----------------------
         Route::get('/login', [AuthenticatedSessionController::class, 'create'])
