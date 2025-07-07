@@ -13,7 +13,6 @@ class CorrectionRequest extends Model
 
     public const STATUS_PENDING  = 'pending';
     public const STATUS_APPROVED = 'approved';
-    public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = [
         'user_id',
@@ -58,8 +57,5 @@ class CorrectionRequest extends Model
         return $this->status === self::STATUS_APPROVED;
     }
 
-    public function isRejected(): bool
-    {
-        return $this->status === self::STATUS_REJECTED;
-    }
+
 }

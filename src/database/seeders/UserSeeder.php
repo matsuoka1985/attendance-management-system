@@ -59,7 +59,5 @@ class UserSeeder extends Seeder
             );
         }
 
-        // ── 追加のランダムダミーユーザ (任意) ─────
-        User::factory()->count(5)->create(); // ←必要数に調整
     }
 }

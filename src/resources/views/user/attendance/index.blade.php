@@ -30,7 +30,9 @@
             <table class="min-w-full bg-white rounded-md shadow text-base text-center leading-6">
                 <thead class="border-b-2 border-gray-200 text-gray-500 font-semibold tracking-wide">
                     <tr>
-                        <th class="py-3 px-4">日付</th>
+                        <th class="py-3 px-4 ">
+                            <div class="inline-block w-[90px] text-left">日付</div>
+                        </th>
                         <th class="py-3 px-4">出勤</th>
                         <th class="py-3 px-4">退勤</th>
                         <th class="py-3 px-4">休憩</th>
@@ -41,7 +43,9 @@
                 <tbody>
                     @foreach ($attendanceData as $record)
                         <tr class="border-b border-gray-200 text-gray-500 font-semibold tracking-wider">
-                            <td class="py-3 px-4">{{ $record['date'] }}</td>
+                            <td class="py-3 px-4 ">
+                                <div class="inline-block w-[90px] text-left">{{ $record['date'] }}</div>
+                            </td>
                             <td class="py-3 px-4">{{ $record['start'] }}</td>
                             <td class="py-3 px-4">{{ $record['end'] }}</td>
                             <td class="py-3 px-4">{{ $record['break'] }}</td>

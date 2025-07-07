@@ -90,7 +90,7 @@
                                     <th class="py-3 px-4">名前</th>
                                     <th class="py-3 px-4">対象日</th>
                                     <th class="py-3 px-4">申請理由</th>
-                                    <th class="py-3 px-4">承認日時</th>
+                                    <th class="py-3 px-4">申請日時</th>
                                     <th class="py-3 px-4">詳細</th>
                                 </tr>
                             </thead>
@@ -98,7 +98,7 @@
                                 @forelse ($approvedRequests as $req)
                                     <tr class="border-b border-gray-200 text-gray-500 font-semibold">
                                         <td class="py-3 px-2 sm:px-4">
-                                            {{ $req->status === 'approved' ? '承認' : '却下' }}
+                                            {{ $req->status === 'approved' ? '承認' : '' }}
                                         </td>
                                         <td class="py-3 px-2 sm:px-4">{{ $req->user->name }}</td>
                                         <td class="py-3 px-2 sm:px-4">
@@ -108,7 +108,7 @@
                                             {{ Str::limit($req->reason, 24) }}
                                         </td>
                                         <td class="py-3 px-2 sm:px-4">
-                                            {{ $req->reviewed_at?->format('Y/m/d') ?? $req->updated_at->format('Y/m/d') }}
+                                            {{ $req->applied_at?->format('Y/m/d') }}
                                         </td>
                                         <td class="py-3 px-2 sm:px-4 text-black">
                                             @if ($req->attendance_id)

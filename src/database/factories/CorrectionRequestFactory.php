@@ -31,7 +31,7 @@ class CorrectionRequestFactory extends Factory
         ];
     }
 
-    /* ---------- 承認／却下ステート ---------- */
+    /* ---------- 承認ステート ---------- */
 
     public function approved(User $admin = null): static
     {
@@ -42,12 +42,5 @@ class CorrectionRequestFactory extends Factory
         ]);
     }
 
-    public function rejected(User $admin = null): static
-    {
-        return $this->state(fn() => [
-            'status'      => CorrectionRequest::STATUS_REJECTED,
-            'reviewed_by' => $admin?->id ?? User::factory()->admin()->create()->id,
-            'reviewed_at' => now(),
-        ]);
-    }
+
 }

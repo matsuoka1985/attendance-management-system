@@ -40,10 +40,7 @@ class AttendanceCorrectionRequest extends FormRequest
             $endAt   = $this->input('end_at');
             $breaks  = $this->input('breaks', []);
 
-            /* 1) 退勤後は退勤必須 */
-            if ($mode === 'finished' && ! $endAt) {
-                $validator->errors()->add('end_at', '退勤後の修正では退勤時刻が必須です。');
-            }
+
 
             /* 2) 出勤 < 退勤 */
             if ($startAt && $endAt && $startAt >= $endAt) {
@@ -99,56 +96,6 @@ class AttendanceCorrectionRequest extends FormRequest
                 }
             }
 
-            /* 5) 変更なしブロック（attendance_id があるとき） */
-            // if ($this->filled('attendance_id') && ! $validator->fails()) {
-            //     $attendance = Attendance::with(['timeLogs' => fn($q) => $q->orderBy('logged_at')])
-            //         ->find($this->attendance_id);
-
-            //     /* 現行データを整形 */
-            //     $currentStart = optional(
-            //         $attendance->timeLogs->firstWhere('type', 'clock_in')
-            //     )->logged_at?->format('H:i');
-
-            //     $currentEnd = optional(
-            //         $attendance->timeLogs->where('type', 'clock_out')->last()
-            //     )->logged_at?->format('H:i');
-
-            //     // 休憩を安全にペア化
-            //     $breakLogs = $attendance->timeLogs
-            //         ->whereIn('type', ['break_start', 'break_end'])
-            //         ->sortBy('logged_at')
-            //         ->values();
-
-            //     $currentBreaks = [];
-            //     for ($i = 0; $i < $breakLogs->count(); $i += 2) {
-            //         $currentBreaks[] = [
-            //             'start' => optional($breakLogs[$i]   ?? null)->logged_at?->format('H:i'),
-            //             'end'   => optional($breakLogs[$i + 1] ?? null)->logged_at?->format('H:i'),
-            //         ];
-            //     }
-
-            //     $current = [
-            //         'start_at' => $currentStart,
-            //         'end_at'   => $currentEnd,
-            //         'breaks'   => $currentBreaks,
-            //     ];
-
-            //     /* リクエスト側 */
-            //     $requested = [
-            //         'start_at' => $this->start_at,
-            //         'end_at'   => $this->end_at,
-            //         'breaks'   => collect($this->breaks ?? [])
-            //             ->map(fn($b) => [
-            //                 'start' => $b['start'] ?? null,
-            //                 'end'   => $b['end']   ?? null,
-            //             ])
-            //             ->toArray(),
-            //     ];
-
-            //     if ($current == $requested) {
-            //         $validator->errors()->add('base', '修正内容がありません。');
-            //     }
-            // }
         });
     }
 

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AttendanceCorrectionRequest;
 use App\Models\Attendance;
-use App\Models\CorrectionBreakTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\CorrectionRequest;
@@ -21,7 +20,7 @@ class StampCorrectionRequestController extends Controller
     /**
      * 一般ユーザー: 自分が出した修正申請の一覧
      *   - pending   : 承認待ち
-     *   - approved… : 承認／却下済み
+     *   - approved… : 承認済み
      */
     public function index(Request $request)
     {
@@ -42,14 +41,17 @@ class StampCorrectionRequestController extends Controller
             ->latest('created_at')
             ->get();
 
-        /* ───────── 承認／却下済み ───────── */
+        /* ───────── 2. 承認済み ───────── */
         $approvedRequests = CorrectionRequest::with($baseWith + ['reviewer:id,name'])
             ->where('user_id', $user->id)
-            ->whereIn('status', [
-                CorrectionRequest::STATUS_APPROVED,
-                CorrectionRequest::STATUS_REJECTED,
-            ])
-            ->orderByRaw('COALESCE(reviewed_at, updated_at) DESC')
+            ->whereIn('id', function ($q) {
+                $q->selectRaw('MAX(id)')
+                  ->from('correction_requests')
+                  ->groupBy('attendance_id');
+            })
+            ->where('status', CorrectionRequest::STATUS_APPROVED)
+            // 一覧でも「申請日（created_at）」基準で新しい順に並べる
+            ->latest('created_at')
             ->get();
 
         /* ── 対象日（target_date）を付与 ──
@@ -66,23 +68,17 @@ class StampCorrectionRequestController extends Controller
         $addTarget($pendingRequests);
         $addTarget($approvedRequests);
 
+        // 承認済み一覧でも申請日時（created_at）をビューで使いやすいように統一キーで渡す
+        $approvedRequests->each(fn ($r) => $r->applied_at = $r->created_at);
+
         return view(
             'user.stamp_correction_requests.index',
             compact('pendingRequests', 'approvedRequests')
         );
     }
 
-
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
+     * 勤怠打刻修正申請処理
      */
     public function store(AttendanceCorrectionRequest $request)
     {
@@ -156,37 +152,5 @@ class StampCorrectionRequestController extends Controller
 
         return redirect()->route('request.index')
             ->with('success', '修正申請を送信しました。');
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
     }
 }

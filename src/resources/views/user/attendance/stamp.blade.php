@@ -5,6 +5,12 @@
 @section('content')
     <div class="min-h-screen flex flex-col items-center justify-center py-24 px-4 sm:px-6 lg:px-8 bg-gray-100 text-center">
         {{-- フラッシュメッセージ --}}
+        @if (session('mail_status'))
+            <div class="mb-6 bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded">
+                {{ session('mail_status') }}
+            </div>
+        @endif
+
         @if (session('success'))
             <div class="mb-4 w-full max-w-md bg-green-100 border border-green-400 text-green-800 px-4 py-2 rounded">
                 {{ session('success') }}
@@ -23,16 +29,19 @@
                 @switch($status)
                     @case('not_working')
                         勤務外
-                        @break
+                    @break
+
                     @case('working')
                         出勤中
-                        @break
+                    @break
+
                     @case('on_break')
                         休憩中
-                        @break
+                    @break
+
                     @case('finished')
                         退勤済
-                        @break
+                    @break
                 @endswitch
             </span>
         </div>
@@ -57,7 +66,7 @@
                         出勤
                     </button>
                 </form>
-                @break
+            @break
 
             @case('working')
                 <div class="flex gap-6 justify-center flex-wrap">
@@ -76,7 +85,7 @@
                         </button>
                     </form>
                 </div>
-                @break
+            @break
 
             @case('on_break')
                 <form method="POST" action="{{ route('break.end') }}">
@@ -86,11 +95,11 @@
                         休憩戻
                     </button>
                 </form>
-                @break
+            @break
 
             @case('finished')
                 <p class="text-base font-semibold text-gray-800">お疲れ様でした。</p>
-                @break
+            @break
         @endswitch
     </div>
 

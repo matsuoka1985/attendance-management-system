@@ -14,10 +14,10 @@ class AttendanceSeeder extends Seeder
 
     public function run(): void
     {
-        $end   = Carbon::yesterday()->startOfDay();    
+        $end   = Carbon::yesterday()->startOfDay();
         $start = $end->copy()->subMonthsNoOverflow(6);
 
-        User::all()->each(function (User $user) use ($start, $end) {
+        User::where('role', 'user')->get()->each(function (User $user) use ($start, $end) {
 
             $date = $start->copy();
 

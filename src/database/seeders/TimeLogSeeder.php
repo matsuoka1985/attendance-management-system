@@ -11,7 +11,9 @@ class TimeLogSeeder extends Seeder
 {
     public function run(): void
     {
-        Attendance::all()->each(function (Attendance $attendance) {
+        Attendance::whereHas('user', fn($q) => $q->where('role', '!=', 'admin'))
+            ->get()
+            ->each(function (Attendance $attendance) {
 
             $day      = Carbon::parse($attendance->work_date);
             $clockIn  = $day->copy()->setTime(9, 0);

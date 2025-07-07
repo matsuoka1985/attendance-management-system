@@ -145,34 +145,7 @@ class AttendanceController extends Controller
         $breaks  = [['start' => '', 'end' => '']];   // 空行 1 本
         $reason  = $pending?->reason ?? '';
 
-        // 変更差分（青帯）
-        $diffs = [];
-        if ($pending) {
-            $logs = $pending->timeLogs;
 
-            // ─ 出勤 / 退勤
-            if ($s = optional($logs->firstWhere('type', 'clock_in'))->logged_at?->format('H:i')) {
-                $diffs[] = ['label' => '出勤', 'old' => '—', 'new' => $s];
-            }
-            if ($e = optional($logs->where('type', 'clock_out')->last())->logged_at?->format('H:i')) {
-                $diffs[] = ['label' => '退勤', 'old' => '—', 'new' => $e];
-            }
-
-            // ─ 休憩ペア
-            $stk = null;
-            $idx = 1;
-            foreach ($logs as $l) {
-                if ($l->type === 'break_start') {
-                    $stk = $l->logged_at;
-                } elseif ($l->type === 'break_end' && $stk) {
-                    $s = $stk->format('H:i');
-                    $e = $l->logged_at->format('H:i');
-                    $diffs[] = ['label' => "休憩{$idx}", 'old' => '—', 'new' => "{$s}〜{$e}"];
-                    $stk = null;
-                    $idx++;
-                }
-            }
-        }
 
         /* ---------- 6.  ダミー Attendance (フォーム用) ---------- */
         // ─ route('admin.attendance.fix', $attendance->id) を壊さないためのプレースホルダ
@@ -192,17 +165,10 @@ class AttendanceController extends Controller
             'reason'            => $reason,
             'hasPendingRequest' => $hasPendingRequest,
             'pendingRequest'   => $pending,
-            'diffs'             => $diffs,
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+
 
     /**
      * Display the specified resource.
@@ -282,63 +248,10 @@ class AttendanceController extends Controller
             $breaks[] = ['start' => '', 'end' => ''];
         }
 
-        /* -------------------------------------------------------------
-     * 4. 差分抽出（確定 vs pending）
-     * ----------------------------------------------------------- */
-        $diffs = [];
-        if ($pending) {
-            // ① draftLogs を同スキーマで取得
-            $dStart = optional($draftLogs->firstWhere('type', 'clock_in'))
-                ->logged_at?->format('H:i');
-            $dEnd   = optional($draftLogs->where('type', 'clock_out')->last())
-                ->logged_at?->format('H:i');
 
-            if ($startAt !== $dStart) {
-                $diffs[] = ['label' => '出勤', 'old' => $startAt, 'new' => $dStart];
-            }
-            if ($endAt !== $dEnd) {
-                $diffs[] = ['label' => '退勤', 'old' => $endAt, 'new' => $dEnd];
-            }
-
-            // ② draft の休憩をペア化
-            $draftPairs = [];
-            $stk = null;
-            foreach ($draftLogs as $l) {
-                if ($l->type === 'break_start') {
-                    $stk = $l->logged_at;
-                } elseif ($l->type === 'break_end' && $stk) {
-                    $draftPairs[] = [
-                        'start' => $stk->format('H:i'),
-                        'end'   => $l->logged_at->format('H:i'),
-                    ];
-                    $stk = null;
-                }
-            }
-
-            $max = max(count($breaks) - 1, count($draftPairs));   // -1 で末尾空行除外
-            for ($i = 0; $i < $max; $i++) {
-                $basePair  = $breaks[$i]     ?? ['start' => null, 'end' => null];
-                $draftPair = $draftPairs[$i] ?? ['start' => null, 'end' => null];
-
-                if (($basePair['start'] ?? null) !== ($draftPair['start'] ?? null)) {
-                    $diffs[] = [
-                        'label' => '休憩' . ($i + 1) . '開始',
-                        'old'   => $basePair['start'],
-                        'new'   => $draftPair['start'],
-                    ];
-                }
-                if (($basePair['end'] ?? null) !== ($draftPair['end'] ?? null)) {
-                    $diffs[] = [
-                        'label' => '休憩' . ($i + 1) . '終了',
-                        'old'   => $basePair['end'],
-                        'new'   => $draftPair['end'],
-                    ];
-                }
-            }
-        }
 
         /* -------------------------------------------------------------
-     * 5. View へ
+     * 4. View へ
      * ----------------------------------------------------------- */
         return view('admin.attendance.show', [
             'mode'              => 'edit',
@@ -351,33 +264,7 @@ class AttendanceController extends Controller
             'reason'            => $displayReason,
             'hasPendingRequest' => $hasPendingRequest,
             'pendingRequest'   => $pending,
-            'diffs'             => $diffs,
         ]);
     }
 
-
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
 }

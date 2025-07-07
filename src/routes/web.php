@@ -1,6 +1,7 @@
 <?php
 
 
+
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\User\AttendanceController as UserAttendanceController;
 
@@ -18,23 +19,37 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Auth\RegisteredUserController;
 
 
-
+//ルートパスへのアクセスをリダイレクト
 Route::get('/', function () {
-    return view('welcome');
-});
-
-//テストのルーティング定義。最後の削除してしまってok。
-Route::get('/test', function () {
-    return view('test');
-});
-
-// 自作ルート メール確認通知表示
-Route::get('/email/verify', function () {
-    if (auth()->user()?->hasVerifiedEmail()) {
-        return redirect()->route('attendance.stamp'); // メール確認済みなら出勤登録画面へリダイレクト
+    // Admin users go to admin attendance list
+    if (auth()->guard('admin')->check()) {
+        return redirect()->route('admin.attendance.index');
     }
-    return view('auth.verify-email');
-})->middleware(['auth'])->name('verification.notice');
+    // Authenticated general users go to their attendance stamp page
+    if (auth()->check()) {
+        return redirect()->route('attendance.stamp');
+    }
+    // Guests go to login
+    return redirect()->route('login');
+});
+
+
+
+// 自作ルート メール確認通知表示（管理者と一般ユーザーを区別）
+Route::get('/email/verify', function () {
+    if (auth('admin')->check()) {
+        return redirect()->route('admin.attendance.index');
+    }
+
+    if (auth()->check()) {
+        if (auth()->user()->hasVerifiedEmail()) {
+            return redirect()->route('attendance.stamp');
+        }
+        return view('auth.verify-email');
+    }
+
+    return redirect()->route('login');
+})->middleware(['web'])->name('verification.notice');
 
 
 
@@ -45,7 +60,7 @@ Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $requ
     }
 
     $request->fulfill();
-    return view('auth.verification-complete'); // 自作ビュー
+    return redirect()->route('attendance.stamp')->with('mail_status', 'メール認証が完了しました。ご確認ありがとうございます。');
 })->middleware(['auth', 'signed'])->name('verification.verify');
 
 
@@ -80,11 +95,11 @@ Route::post('/login', [LoginController::class, 'store'])->name('login');
 // 一般ユーザー向け（Fortify の register / login は自動登録済み）
 // ──────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->group(function () {
-    // 出勤登録画面
+    // 出勤登録画面 *認可済み
     Route::get('/attendance', [AttendanceStampController::class, 'create'])
         ->name('attendance.stamp');
 
-    // 出勤打刻処理　
+    // 出勤打刻処理
     Route::post('/attendance/start', [AttendanceStampController::class, 'start'])
         ->name('attendance.start');
 
@@ -115,7 +130,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('attendance.show');
 
 
-
     // 申請一覧
     Route::get('/stamp_correction_request/list',  [UserStampCorrectionRequestController::class, 'index'])
         ->name('request.index');
@@ -136,12 +150,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::prefix('admin')
     ->as('admin.')
     ->group(function () {
-        //.仮ルート。あとで削除する。
-        Route::get('/dashboard', function () {
-            return "テストです";
-        })
-            ->middleware('auth:admin')
-            ->name('dashboard');
 
         // --- ログイン画面（ゲスト専用） ----------------------
         Route::get('/login', [AuthenticatedSessionController::class, 'create'])
@@ -150,13 +158,13 @@ Route::prefix('admin')
 
         // ── ログイン実行（POST） ───────────
         Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-            ->middleware('guest:admin')            // 同上
+            ->middleware('guest:admin')
             ->name('login.store');
 
         // ── ログアウト（POST） ────────────
         Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
-            ->middleware('auth:admin')       // もしくは 'auth.admin'
-            ->name('logout');                // 結果 → admin.logout
+            ->middleware('auth:admin')
+            ->name('logout');
 
 
 
