@@ -77,15 +77,6 @@ class StampCorrectionRequestController extends Controller
         );
     }
 
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
     /**
      * 勤怠打刻修正申請処理
      */

@@ -35,13 +35,21 @@ Route::get('/', function () {
 
 
 
-// 自作ルート メール確認通知表示
+// 自作ルート メール確認通知表示（管理者と一般ユーザーを区別）
 Route::get('/email/verify', function () {
-    if (auth()->user()?->hasVerifiedEmail()) {
-        return redirect()->route('attendance.stamp'); // メール確認済みなら出勤登録画面へリダイレクト
+    if (auth('admin')->check()) {
+        return redirect()->route('admin.attendance.index');
     }
-    return view('auth.verify-email');
-})->middleware(['auth'])->name('verification.notice');
+
+    if (auth()->check()) {
+        if (auth()->user()->hasVerifiedEmail()) {
+            return redirect()->route('attendance.stamp');
+        }
+        return view('auth.verify-email');
+    }
+
+    return redirect()->route('login');
+})->middleware(['web'])->name('verification.notice');
 
 
 
@@ -150,7 +158,7 @@ Route::prefix('admin')
 
         // ── ログイン実行（POST） ───────────
         Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-            ->middleware('guest:admin')            
+            ->middleware('guest:admin')
             ->name('login.store');
 
         // ── ログアウト（POST） ────────────

@@ -10,7 +10,7 @@
             @if ($errors->any())
                 <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <ul class="list-disc list-inside text-sm">
-                        @foreach ($errors->all() as $error)
+                        @foreach (collect($errors->all())->unique() as $error)
                             <li>{{ $error }}</li>
                         @endforeach
                     </ul>
@@ -68,10 +68,12 @@
                         <div class="w-full sm:w-[17rem] flex flex-col sm:flex-row gap-2 sm:gap-6 font-bold">
                             <input type="time" name="start_at" {{-- value="{{ old('start_at', optional($attendance?->start_at)->format('H:i')) }}" --}}
                                 value="{{ old('start_at', $startAt) }}"
-                                class="border rounded px-2 py-1 w-full sm:w-32 text-center appearance-none">
+                                class="border rounded px-2 py-1 w-full sm:w-32 text-center appearance-none"
+                                @if ($hasPendingRequest) readonly @endif>
                             <span class="self-center">〜</span>
                             <input type="time" name="end_at" {{-- value="{{ old('end_at', optional($attendance?->end_at)->format('H:i')) }}" --}} value="{{ old('end_at', $endAt) }}"
-                                class="border rounded px-2 py-1 w-full sm:w-32 text-center appearance-none">
+                                class="border rounded px-2 py-1 w-full sm:w-32 text-center appearance-none"
+                                @if ($hasPendingRequest) readonly @endif>
                         </div>
                     </div>
 
@@ -123,10 +125,12 @@
                     </div>
                     <div class="w-full sm:w-[17rem] flex flex-col sm:flex-row gap-2 sm:gap-6 font-bold">
                         <input type="time" name="breaks[${idx}][start]"
-                               class="break-start border rounded px-2 py-1 w-full sm:w-32 text-center">
+                               class="break-start border rounded px-2 py-1 w-full sm:w-32 text-center"
+                               ${@json($hasPendingRequest) ? 'readonly' : ''}>
                         <span class="self-center">〜</span>
                         <input type="time" name="breaks[${idx}][end]"
-                               class="break-end border rounded px-2 py-1 w-full sm:w-32 text-center">
+                               class="break-end border rounded px-2 py-1 w-full sm:w-32 text-center"
+                               ${@json($hasPendingRequest) ? 'readonly' : ''}>
                     </div>`;
                 return row;
             };
@@ -176,7 +180,25 @@
         });
     </script>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('attendance-form');
+            form.addEventListener('submit', (e) => {
+                const dateStr = form.querySelector('input[name="work_date"]')?.value;
+                if (!dateStr) return;
 
+                const workDate = new Date(dateStr);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
 
+                if (workDate > today) {
+                    const proceed = confirm('未来の日付に対して勤怠登録申請をしようとしています。本当によろしいですか？');
+                    if (!proceed) {
+                        e.preventDefault();
+                    }
+                }
+            });
+        });
+    </script>
 
 @endsection

@@ -20,7 +20,7 @@ class CorrectionRequestSeeder extends Seeder
         /* ── 承認者（管理者） ── */
         $admin = User::where('role', 'admin')->first();
 
-        Attendance::query()
+        Attendance::whereHas('user', fn($q) => $q->where('role', '!=', 'admin'))
             ->inRandomOrder()
             ->whereDoesntHave('correctionRequests')
             ->limit(50)

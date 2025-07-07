@@ -25,7 +25,7 @@
             @if ($errors->any())
                 <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <ul class="list-disc list-inside text-sm">
-                        @foreach ($errors->all() as $error)
+                        @foreach (collect($errors->all())->unique() as $error)
                             <li>{{ $error }}</li>
                         @endforeach
                     </ul>
@@ -72,10 +72,12 @@
                         <div class="text-gray-500 font-semibold whitespace-nowrap flex items-center">出勤・退勤</div>
                         <div class="w-full sm:w-[17rem] flex flex-col sm:flex-row gap-2 sm:gap-6 font-bold">
                             <input type="time" name="start_at" value="{{ old('start_at', $startAt) }}"
-                                class="border rounded px-2 py-1 w-full sm:w-32 text-center appearance-none">
+                                class="border rounded px-2 py-1 w-full sm:w-32 text-center appearance-none"
+                                @if (!empty($pendingRequest)) readonly @endif>
                             <span class="self-center">〜</span>
                             <input type="time" name="end_at" value="{{ old('end_at', $endAt) }}"
-                                class="border rounded px-2 py-1 w-full sm:w-32 text-center appearance-none">
+                                class="border rounded px-2 py-1 w-full sm:w-32 text-center appearance-none"
+                                @if (!empty($pendingRequest)) readonly @endif>
                         </div>
                     </div>
 
@@ -123,11 +125,30 @@
     </div>
 
 
+    {{-- ───── JS：未来日アラート確認 ───── --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('attendance-form');
+            form.addEventListener('submit', function (e) {
+                const workDate = new Date("{{ $workDate->format('Y-m-d') }}");
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (workDate > today) {
+                    const confirmed = confirm('未来の日付に対して勤怠登録を行おうとしています。\nこのまま続行してもよろしいですか？');
+                    if (!confirmed) {
+                        e.preventDefault();
+                    }
+                }
+            });
+        });
+    </script>
+
     {{-- ───── JS：休憩行の動的追加 ───── --}}
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const container = document.getElementById('break-sections');
             const initialBreaks = @json(old('breaks', $breaks ?? []));
+            const isReadonly = @json(!empty($pendingRequest));
 
             /* テンプレ行 ---------- */
             const makeRow = idx => {
@@ -140,10 +161,12 @@
             </div>
             <div class="w-full sm:w-[17rem] flex flex-col sm:flex-row gap-2 sm:gap-6 font-bold">
                 <input type="time" name="breaks[${idx}][start]"
-                       class="break-start border rounded px-2 py-1 w-full sm:w-32 text-center">
+                       class="break-start border rounded px-2 py-1 w-full sm:w-32 text-center"
+                       ${isReadonly ? 'readonly' : ''}>
                 <span class="self-center">〜</span>
                 <input type="time" name="breaks[${idx}][end]"
-                       class="break-end border rounded px-2 py-1 w-full sm:w-32 text-center">
+                       class="break-end border rounded px-2 py-1 w-full sm:w-32 text-center"
+                       ${isReadonly ? 'readonly' : ''}>
             </div>`;
                 return row;
             };
@@ -184,7 +207,9 @@
                 renumber();
             };
 
-            container.addEventListener('input', tidy);
+            if (!isReadonly) {
+                container.addEventListener('input', tidy);
+            }
         });
     </script>
 @endsection

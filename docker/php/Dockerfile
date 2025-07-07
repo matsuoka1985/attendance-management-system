@@ -1,4 +1,4 @@
-FROM php:8.2-fpm-alpine
+FROM php:8.2.28-fpm-alpine
 
 # ---------- PHP 拡張 -----------
 RUN apk add --no-cache icu-dev zlib-dev libzip-dev oniguruma-dev mysql-client \
