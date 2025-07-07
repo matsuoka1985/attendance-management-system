@@ -13,11 +13,12 @@ RUN curl -sS https://getcomposer.org/installer | php -- \
   --install-dir=/usr/local/bin --filename=composer
 
 # ---------- bash + Node 20 LTS ----------
-RUN apk add --no-cache bash nodejs-lts npm
+RUN apk add --no-cache bash make nodejs-lts npm
 
 # ---------- Dusk 用の Chrome + 依存パッケージ ----------
 RUN apk add --no-cache \
   chromium \
+  chromium-chromedriver \
   nss \
   freetype \
   harfbuzz \
