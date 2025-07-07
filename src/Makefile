@@ -34,25 +34,20 @@ setup:
 		php artisan key:generate --env=dusk.local --ansi; \
 	fi
 
-	# ─── wait for MySQL ───
-	@echo "Waiting for MySQL at $(DB_HOST)..."
-	@until mysqladmin ping -h$(DB_HOST) -uroot -p$(DB_ROOT_PASSWORD) --silent; do \
-		sleep 2; \
-	done
+
 
 	# ─── migrate & seed (production) ───
 	php artisan migrate --force
 	php artisan db:seed --force
 
 	# ─── migrate & seed (testing) ───
-	mysql -h$(DB_HOST) -uroot -p$(DB_ROOT_PASSWORD) \
+	mysql --ssl=0 -h$(DB_HOST) -uroot -p$(DB_ROOT_PASSWORD) \
 		-e "CREATE DATABASE IF NOT EXISTS \`demo_test\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 	php artisan migrate --env=testing --force
 	php artisan db:seed --env=testing --force
 	php artisan config:clear
 
 	# ─── storage link & permissions ───
-	-php artisan storage:link
-	chown -R www-data:www-data storage bootstrap/cache
+	php artisan storage:link
 
 	@echo "=== Laravel Setup Complete ==="
