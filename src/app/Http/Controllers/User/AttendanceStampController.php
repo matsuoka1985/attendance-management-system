@@ -109,7 +109,7 @@ class AttendanceStampController extends Controller
 
     public function performStartBreak(): Attendance
     {
-        $attendance = $this->todayAttendanceOrFail();
+        $attendance = $this->resolveAttendanceForStamp();
         $logs = $this->filteredTimeLogs($attendance);
 
         if ($logs->contains('type', 'clock_out')) {
@@ -142,7 +142,7 @@ class AttendanceStampController extends Controller
 
     public function performEndBreak(): Attendance
     {
-        $attendance = $this->todayAttendanceOrFail();
+        $attendance = $this->resolveAttendanceForStamp();
         $logs = $this->filteredTimeLogs($attendance);
 
         $last = $logs->last();
@@ -173,7 +173,7 @@ class AttendanceStampController extends Controller
 
     public function performClockOut(): Attendance
     {
-        $attendance = $this->todayAttendanceOrFail();
+        $attendance = $this->resolveAttendanceForStamp();
         $logs = $this->filteredTimeLogs($attendance);
         $last = $logs->last();
 
@@ -219,5 +219,33 @@ class AttendanceStampController extends Controller
         }
 
         return $query->get();
+    }
+
+    /**
+     * 過去7日以内で退勤されていない勤怠を取得
+     * 見つからなければ本日の勤怠を firstOrCreate
+     */
+    private function resolveAttendanceForStamp(): Attendance
+    {
+        $user  = Auth::user();
+        for ($i = 0; $i < 7; $i++) {
+            $date = Carbon::today()->subDays($i);
+            $attendance = Attendance::where('user_id', $user->id)
+                ->whereDate('work_date', $date)
+                ->first();
+            if ($attendance) {
+                $logs = $this->filteredTimeLogs($attendance);
+                $last = $logs->last();
+                if (!$last || $last->type !== 'clock_out') {
+                    return $attendance;
+                }
+            }
+        }
+        // 見つからなければ本日勤怠を作成
+        $today = Carbon::today();
+        return Attendance::firstOrCreate([
+            'user_id'   => Auth::id(),
+            'work_date' => $today,
+        ]);
     }
 }

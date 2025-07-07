@@ -21,7 +21,16 @@
             <div class="flex justify-between items-center h-16">
                 <!-- ロゴ -->
                 <div class="flex-shrink-0">
-                    <a href="/">
+                    @php
+                        if (!auth()->check()) {
+                            $homeUrl = route('login');
+                        } elseif (auth()->guard('admin')->check()) {
+                            $homeUrl = route('admin.attendance.index');
+                        } else {
+                            $homeUrl = route('attendance.stamp');
+                        }
+                    @endphp
+                    <a href="{{ $homeUrl }}">
                         <img class="h-10 max-h-[44px] w-auto max-w-[180px] sm:max-w-[240px] mr-2 sm:mr-4"
                             src="/images/logo.svg" alt="Coachtech Logo">
 

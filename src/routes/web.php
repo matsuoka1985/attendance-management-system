@@ -1,6 +1,7 @@
 <?php
 
 
+
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\User\AttendanceController as UserAttendanceController;
 
@@ -16,6 +17,21 @@ use App\Http\Controllers\User\AttendanceStampController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Auth\RegisteredUserController;
+
+
+//ルートパスへのアクセスをリダイレクト
+Route::get('/', function () {
+    // Admin users go to admin attendance list
+    if (auth()->guard('admin')->check()) {
+        return redirect()->route('admin.attendance.index');
+    }
+    // Authenticated general users go to their attendance stamp page
+    if (auth()->check()) {
+        return redirect()->route('attendance.stamp');
+    }
+    // Guests go to login
+    return redirect()->route('login');
+});
 
 
 
@@ -62,8 +78,8 @@ Route::post('/register', [RegisteredUserController::class, 'store'])
 //自作ルート
 Route::post('/login', [LoginController::class, 'store'])->name('login');
 
-//ルートへのアクセス
-Route::redirect('/', '/login');
+
+
 
 
 
@@ -71,11 +87,11 @@ Route::redirect('/', '/login');
 // 一般ユーザー向け（Fortify の register / login は自動登録済み）
 // ──────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->group(function () {
-    // 出勤登録画面
+    // 出勤登録画面 *認可済み
     Route::get('/attendance', [AttendanceStampController::class, 'create'])
         ->name('attendance.stamp');
 
-    // 出勤打刻処理　
+    // 出勤打刻処理
     Route::post('/attendance/start', [AttendanceStampController::class, 'start'])
         ->name('attendance.start');
 
@@ -126,12 +142,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::prefix('admin')
     ->as('admin.')
     ->group(function () {
-        // //.仮ルート。あとで削除する。
-        // Route::get('/dashboard', function () {
-        //     return "テストです";
-        // })
-        //     ->middleware('auth:admin')
-        //     ->name('dashboard');
 
         // --- ログイン画面（ゲスト専用） ----------------------
         Route::get('/login', [AuthenticatedSessionController::class, 'create'])
@@ -140,13 +150,13 @@ Route::prefix('admin')
 
         // ── ログイン実行（POST） ───────────
         Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-            ->middleware('guest:admin')            // 同上
+            ->middleware('guest:admin')            
             ->name('login.store');
 
         // ── ログアウト（POST） ────────────
         Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
-            ->middleware('auth:admin')       // もしくは 'auth.admin'
-            ->name('logout');                // 結果 → admin.logout
+            ->middleware('auth:admin')
+            ->name('logout');
 
 
 

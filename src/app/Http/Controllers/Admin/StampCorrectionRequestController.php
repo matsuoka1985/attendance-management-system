@@ -51,6 +51,7 @@ class StampCorrectionRequestController extends Controller
             'timeLogs' => fn($q) => $q->orderBy('logged_at'),
         ])
             ->where('status', CorrectionRequest::STATUS_APPROVED)
+            ->whereHas('user', fn($q) => $q->where('role', '!=', 'admin')) // 追加: 管理者作成を除外
             ->latest('created_at')                           // ★ 申請日時の降順で統一
             ->get()
             ->each(function (CorrectionRequest $req) {
@@ -71,13 +72,7 @@ class StampCorrectionRequestController extends Controller
     }
 
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
+
 
     /**
      * 管理者による「即時反映」勤怠登録／修正
@@ -117,7 +112,7 @@ class StampCorrectionRequestController extends Controller
 
             // 3-1. CorrectionRequest（即時 APPROVED）
             $correction = CorrectionRequest::create([
-                'user_id'       => $staffId,
+                'user_id'       => $admin->id, // 管理者が申請者
                 'attendance_id' => $attendance->id,
                 'reason'        => $request->reason ?: '管理者による修正',
                 'status'        => CorrectionRequest::STATUS_APPROVED,
@@ -386,118 +381,4 @@ class StampCorrectionRequestController extends Controller
             ->with('success', '修正申請を承認し、勤怠へ反映しました。');
     }
 
-
-
-
-
-
-    /* ───────────────────────── 承認処理 ─────────────────────────
-     *
-     * ルート :  POST /admin/attendance/{attendance}/approve
-     *           {attendance} = 既存 ID | new
-     * name  :  admin.attendance.approve
-     *
-     * 既存勤怠 → その勤怠に紐づく最新 pending を承認
-     * 新規勤怠 → attendance を作成してから承認
-     * ──────────────────────────────────────────────── */
-    // public function approve(Request $request, string $attendance = null)
-    // {
-    //     /** @var \App\Models\Admin $admin */
-    //     $admin = Auth::guard('admin')->user();
-
-    //     /* ---------- 1. 承認対象を決定 ---------- */
-    //     if ($attendance && ctype_digit($attendance)) {
-    //         /* 既存勤怠 ID が URL で渡ってきたパターン */
-    //         $attendance = Attendance::with('user')->findOrFail($attendance);
-
-    //         $pending = CorrectionRequest::where('attendance_id', $attendance->id)
-    //             ->where('status', CorrectionRequest::STATUS_PENDING)
-    //             ->latest('created_at')
-    //             ->first();
-    //     } else {
-    //         /* new ルート → 勤怠未作成の日を承認するパターン
-    //            user_id と work_date を hidden で受け取る       */
-    //         $data = $request->validate([
-    //             'user_id'    => ['required', 'integer', 'exists:users,id'],
-    //             'work_date'  => ['required', 'date'],
-    //         ]);
-
-    //         // 対象スタッフ
-    //         $staff = User::where('role', '!=', 'admin')->findOrFail($data['user_id']);
-    //         $day   = Carbon::parse($data['work_date'])->startOfDay();
-
-    //         // 勤怠（無ければ firstOrCreate）
-    //         $attendance = Attendance::firstOrCreate(
-    //             ['user_id' => $staff->id, 'work_date' => $day->toDateString()],
-    //             ['created_at' => now(), 'updated_at' => now()]
-    //         );
-
-    //         // その日に対する latest pending
-    //         $pending = CorrectionRequest::where('user_id', $staff->id)
-    //             ->where('status',  CorrectionRequest::STATUS_PENDING)
-    //             ->whereHas('timeLogs', fn($q) => $q->whereDate('logged_at', $day))
-    //             ->latest('created_at')
-    //             ->first();
-    //     }
-
-    //     /* ---------- 2. 未承認が無い場合は 404 ---------- */
-    //     if (!$pending) {
-    //         abort(404, '未承認の修正申請はありません。');
-    //     }
-
-    //     /* ---------- 3. 承認処理（Tx）---------- */
-    //     DB::transaction(function () use ($pending, $attendance, $admin) {
-
-    //         // 3-1. 申請ヘッダを APPROVED
-    //         $pending->update([
-    //             'status'      => CorrectionRequest::STATUS_APPROVED,
-    //             'attendance_id' => $attendance->id,
-    //             'reviewed_by' => $admin->id,
-    //             'reviewed_at' => now(),
-    //         ]);
-
-    //         // 3-2. 申請に紐づく TimeLog を確定勤怠へ帰属
-    //         TimeLog::where('correction_request_id', $pending->id)
-    //             ->update(['attendance_id' => $attendance->id]);
-    //     });
-
-    //     /* ---------- 4. 完了 ---------- */
-    //     return redirect()
-    //         ->route('admin.attendance.show', $attendance->id)
-    //         ->with('success', '修正申請を承認し、勤怠に反映しました。');
-    // }
-
-
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
 }

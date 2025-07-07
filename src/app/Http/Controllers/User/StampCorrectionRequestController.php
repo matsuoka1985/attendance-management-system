@@ -44,9 +44,12 @@ class StampCorrectionRequestController extends Controller
         /* ───────── 2. 承認済み ───────── */
         $approvedRequests = CorrectionRequest::with($baseWith + ['reviewer:id,name'])
             ->where('user_id', $user->id)
-            ->whereIn('status', [
-                CorrectionRequest::STATUS_APPROVED,
-            ])
+            ->whereIn('id', function ($q) {
+                $q->selectRaw('MAX(id)')
+                  ->from('correction_requests')
+                  ->groupBy('attendance_id');
+            })
+            ->where('status', CorrectionRequest::STATUS_APPROVED)
             // 一覧でも「申請日（created_at）」基準で新しい順に並べる
             ->latest('created_at')
             ->get();

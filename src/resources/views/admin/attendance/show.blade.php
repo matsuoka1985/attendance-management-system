@@ -32,21 +32,6 @@
                 </div>
             @endif
 
-            {{-- ───── 申請中差分（青帯）───── --}}
-            @if (!empty($diffs))
-                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md mb-6">
-                    <p class="font-semibold text-blue-700 mb-1">申請中の変更</p>
-                    <ul class="text-sm text-blue-800 leading-6 space-y-0.5">
-                        @foreach ($diffs as $d)
-                            <li>
-                                {{ $d['label'] }} :
-                                <span class="line-through text-gray-400 mr-1">{{ $d['old'] ?? '—' }}</span>
-                                <span class="text-red-600 font-semibold">→ {{ $d['new'] ?? '—' }}</span>
-                            </li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
 
 
             {{-- ───── 入力フォーム ───── --}}
@@ -102,36 +87,30 @@
                         <div class="text-gray-500 font-semibold whitespace-nowrap flex items-center">備考</div>
                         <div class="w-full sm:w-[17rem] flex items-center">
                             <textarea name="reason" rows="2" class="mt-2 sm:mt-0 border rounded w-full px-3 py-2"
-                                @if ($hasPendingRequest) readonly @endif>{{ old('reason', $reason) }}</textarea>
+                                @if ($hasPendingRequest) readonly @endif></textarea>
                         </div>
                     </div>
                 </form>
             </div>
 
             {{-- ───── 送信ボタン ───── --}}
+            {{-- ───── 送信ボタン ───── --}}
             <div class="text-right mt-6">
-
-                {{-- pending があれば必ず承認ボタン --}}
                 @if (!empty($pendingRequest))
-                    {{-- 既存勤怠なら実 ID、新規画面なら new を渡す --}}
-                    @php
-                        $approveTarget = $attendance->exists ? $attendance->id : 'new';
-                    @endphp
+                    {{-- 申請中の修正申請がある場合のメッセージとリンク --}}
+                    <p class="mb-2 text-sm text-gray-700">
 
-                    <form method="POST" action="{{ route('admin.attendance.fix', $approveTarget) }}" class="inline">
-                        @csrf
-                        {{-- 勤怠がまだ無い場合に備える hidden --}}
-                        <input type="hidden" name="user_id" value="{{ $attendance->user_id ?? request('user_id') }}">
-                        <input type="hidden" name="work_date" value="{{ $workDate->toDateString() }}">
-
-                        <button type="submit"
-                            class="bg-black text-white font-semibold px-12 py-2 rounded hover:bg-gray-800">
-                            承認
-                        </button>
-                    </form>
-
-                    {{-- pending が無ければ 登録 / 修正 --}}
+                        <a href="{{ route('admin.request.approve', $pendingRequest->id) }}"
+                            class="text-blue-700 underline">
+                            承認待ちの修正申請があります
+                        </a>
+                    </p>
+                    {{-- 修正不可ボタン（無効化） --}}
+                    <button type="button" disabled class="bg-gray-400 text-white font-semibold px-12 py-2 rounded">
+                        修正
+                    </button>
                 @else
+                    {{-- 修正／登録ボタン --}}
                     <button type="submit" form="attendance-form"
                         class="bg-black text-white font-semibold px-12 py-2 rounded hover:bg-gray-800">
                         {{ $mode === 'edit' ? '修正' : '登録' }}
