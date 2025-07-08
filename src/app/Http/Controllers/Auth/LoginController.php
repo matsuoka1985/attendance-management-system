@@ -13,8 +13,14 @@ class LoginController extends Controller
     {
         if (Auth::attempt($request->only('email', 'password'))) {
             $request->session()->regenerate();
-            //intendedを削除済み。
-            return redirect()->route('attendance.stamp');
+
+            $intended = session('url.intended');
+
+            if ($intended && str_contains($intended, 'login')) {
+                return redirect()->route('attendance.stamp');
+            }
+
+            return redirect()->to($intended ?? route('attendance.stamp'));
         }
 
         return back()->withErrors([
