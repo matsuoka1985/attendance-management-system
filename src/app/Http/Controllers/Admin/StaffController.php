@@ -19,7 +19,7 @@ class StaffController extends Controller
         $staffs = User::query()
             ->when(
                 Schema::hasColumn('users', 'is_admin'),
-                fn($q) => $q->where('is_admin', 0)
+                fn($query) => $query->where('is_admin', 0)
             )
             ->orderBy(
                 Schema::hasColumn('users', 'name_kana') ? 'name_kana' : 'name'

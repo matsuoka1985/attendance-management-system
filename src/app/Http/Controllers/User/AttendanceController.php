@@ -35,7 +35,7 @@ class AttendanceController extends Controller
 
         /* ---------- 2. 勤怠＋ログ＋申請ヘッダを一括取得 ---------- */
         $attendances = Attendance::with([
-            'timeLogs' => fn($q) => $q->orderBy('logged_at'),
+            'timeLogs' => fn($query) => $query->orderBy('logged_at'),
             'correctionRequests:id,attendance_id,status,created_at',
         ])
             ->where('user_id', $user->id)
@@ -64,14 +64,14 @@ class AttendanceController extends Controller
 
                 /* ② 確定ログへ絞り込み -------------------- */
                 $baseLogs = $attendance->timeLogs
-                    ->filter(function (TimeLog $l) {
-                        return is_null($l->correction_request_id) ||
-                            optional($l->correctionRequest)->status === CorrectionRequest::STATUS_APPROVED;
+                    ->filter(function (TimeLog $log) {
+                        return is_null($log->correction_request_id) ||
+                            optional($log->correctionRequest)->status === CorrectionRequest::STATUS_APPROVED;
                     })
                     ->when(
                         $cutLine,
                         fn($col) =>
-                        $col->filter(fn(TimeLog $l) => $l->created_at >= $cutLine)
+                        $col->filter(fn(TimeLog $log) => $log->created_at >= $cutLine)
                     )
                     ->values();                       // インデックス振り直し
 
@@ -84,12 +84,12 @@ class AttendanceController extends Controller
 
                 /* ④ 休憩合計秒数 ------------------------ */
                 $breakSec = 0;
-                $stk = null;
-                foreach ($baseLogs as $l) {
-                    if ($l->type === 'break_start')      $stk = $l->logged_at;
-                    elseif ($l->type === 'break_end' && $stk) {
-                        $breakSec += $stk->diffInSeconds($l->logged_at);
-                        $stk = null;
+                $breakStart = null;
+                foreach ($baseLogs as $log) {
+                    if ($log->type === 'break_start')      $breakStart = $log->logged_at;
+                    elseif ($log->type === 'break_end' && $breakStart) {
+                        $breakSec += $breakStart->diffInSeconds($log->logged_at);
+                        $breakStart = null;
                     }
                 }
                 $breakStr = $breakSec ? gmdate('G:i', $breakSec) : '';
@@ -134,18 +134,18 @@ class AttendanceController extends Controller
             : now()->startOfDay();
 
         /* 既存勤怠があれば詳細画面へ */
-        if ($att = Attendance::where('user_id', $user->id)
+        if ($attendance = Attendance::where('user_id', $user->id)
             ->whereDate('work_date', $date)
             ->first()
         ) {
-            return redirect()->route('attendance.show', $att->id);
+            return redirect()->route('attendance.show', $attendance->id);
         }
 
         /* ─ 最新 pending 申請（あれば） ─ */
-        $pending = CorrectionRequest::with(['timeLogs' => fn($q) => $q->orderBy('logged_at')])
+        $pending = CorrectionRequest::with(['timeLogs' => fn($query) => $query->orderBy('logged_at')])
             ->where('user_id',  $user->id)
             ->where('status',   CorrectionRequest::STATUS_PENDING)
-            ->whereHas('timeLogs', fn($q) => $q->whereDate('logged_at', $date))
+            ->whereHas('timeLogs', fn($query) => $query->whereDate('logged_at', $date))
             ->latest('created_at')
             ->first();
 
@@ -163,24 +163,24 @@ class AttendanceController extends Controller
             $logs = $pending->timeLogs;
 
             /* 出勤 / 退勤 */
-            if ($s = optional($logs->firstWhere('type', 'clock_in'))->logged_at?->format('H:i')) {
-                $diffs[] = ['label' => '出勤', 'old' => '—', 'new' => $s];
+            if ($start = optional($logs->firstWhere('type', 'clock_in'))->logged_at?->format('H:i')) {
+                $diffs[] = ['label' => '出勤', 'old' => '—', 'new' => $start];
             }
-            if ($e = optional($logs->where('type', 'clock_out')->last())->logged_at?->format('H:i')) {
-                $diffs[] = ['label' => '退勤', 'old' => '—', 'new' => $e];
+            if ($end = optional($logs->where('type', 'clock_out')->last())->logged_at?->format('H:i')) {
+                $diffs[] = ['label' => '退勤', 'old' => '—', 'new' => $end];
             }
 
             /* 休憩ペア */
-            $stk = null;
+            $breakStart = null;
             $idx = 1;
-            foreach ($logs as $l) {
-                if ($l->type === 'break_start') {
-                    $stk = $l->logged_at;
-                } elseif ($l->type === 'break_end' && $stk) {
-                    $s = $stk->format('H:i');
-                    $e = $l->logged_at->format('H:i');
-                    $diffs[] = ['label' => "休憩{$idx}", 'old' => '—', 'new' => "{$s}〜{$e}"];
-                    $stk = null;
+            foreach ($logs as $log) {
+                if ($log->type === 'break_start') {
+                    $breakStart = $log->logged_at;
+                } elseif ($log->type === 'break_end' && $breakStart) {
+                    $start = $breakStart->format('H:i');
+                    $end = $log->logged_at->format('H:i');
+                    $diffs[] = ['label' => "休憩{$idx}", 'old' => '—', 'new' => "{$start}〜{$end}"];
+                    $breakStart = null;
                     $idx++;
                 }
             }
@@ -228,18 +228,18 @@ class AttendanceController extends Controller
             ->value('created_at');                   // null → approved が 1 件も無い
 
         $baseLogs = TimeLog::where('attendance_id', $attendance->id)
-            ->where(function ($q) {
-                $q->whereNull('correction_request_id')           // 実運用
+            ->where(function ($query) {
+                $query->whereNull('correction_request_id')           // 実運用
                     ->orWhereHas(
                         'correctionRequest',
-                        fn($qr) =>
-                        $qr->where('status', CorrectionRequest::STATUS_APPROVED)
+                        fn($correctionQuery) =>
+                        $correctionQuery->where('status', CorrectionRequest::STATUS_APPROVED)
                     );                                             // or approved 申請ログ
             })
             ->when(
                 $cutLine,
-                fn($q) =>
-                $q->where('created_at', '>=', $cutLine)
+                fn($query) =>
+                $query->where('created_at', '>=', $cutLine)
             )
             ->orderBy('logged_at')
             ->get();
@@ -247,7 +247,7 @@ class AttendanceController extends Controller
         /* -------------------------------------------------------------
      * 2. 直近 1 件の pending 申請（あれば）
      * ----------------------------------------------------------- */
-        $pending = CorrectionRequest::with(['timeLogs' => fn($q) => $q->orderBy('logged_at')])
+        $pending = CorrectionRequest::with(['timeLogs' => fn($query) => $query->orderBy('logged_at')])
             ->where('attendance_id', $attendance->id)
             ->where('status',  CorrectionRequest::STATUS_PENDING)
             ->latest('created_at')
@@ -268,19 +268,19 @@ class AttendanceController extends Controller
 
         // ─ 休憩ペア化
         $breaks = [];
-        $stack  = null;
+        $breakStart  = null;
         foreach ($baseLogs as $log) {
             if ($log->type === 'break_start') {
-                $stack = $log->logged_at;
-            } elseif ($log->type === 'break_end' && $stack) {
+                $breakStart = $log->logged_at;
+            } elseif ($log->type === 'break_end' && $breakStart) {
                 $breaks[] = [
-                    'start' => $stack->format('H:i'),
+                    'start' => $breakStart->format('H:i'),
                     'end'   => $log->logged_at->format('H:i'),
                 ];
-                $stack = null;
+                $breakStart = null;
             }
         }
-        if (!$stack) {   // 末尾空行（入力補助）
+        if (!$breakStart) {   // 末尾空行（入力補助）
             $breaks[] = ['start' => '', 'end' => ''];
         }
 
@@ -290,30 +290,30 @@ class AttendanceController extends Controller
         $diffs = [];
         if ($pending) {
             // ① draftLogs を同スキーマで取得
-            $dStart = optional($draftLogs->firstWhere('type', 'clock_in'))
+            $draftStart = optional($draftLogs->firstWhere('type', 'clock_in'))
                 ->logged_at?->format('H:i');
-            $dEnd   = optional($draftLogs->where('type', 'clock_out')->last())
+            $draftEnd   = optional($draftLogs->where('type', 'clock_out')->last())
                 ->logged_at?->format('H:i');
 
-            if ($startAt !== $dStart) {
-                $diffs[] = ['label' => '出勤', 'old' => $startAt, 'new' => $dStart];
+            if ($startAt !== $draftStart) {
+                $diffs[] = ['label' => '出勤', 'old' => $startAt, 'new' => $draftStart];
             }
-            if ($endAt !== $dEnd) {
-                $diffs[] = ['label' => '退勤', 'old' => $endAt, 'new' => $dEnd];
+            if ($endAt !== $draftEnd) {
+                $diffs[] = ['label' => '退勤', 'old' => $endAt, 'new' => $draftEnd];
             }
 
             // ② draft の休憩をペア化
             $draftPairs = [];
-            $stk = null;
-            foreach ($draftLogs as $l) {
-                if ($l->type === 'break_start') {
-                    $stk = $l->logged_at;
-                } elseif ($l->type === 'break_end' && $stk) {
+            $breakStart = null;
+            foreach ($draftLogs as $log) {
+                if ($log->type === 'break_start') {
+                    $breakStart = $log->logged_at;
+                } elseif ($log->type === 'break_end' && $breakStart) {
                     $draftPairs[] = [
-                        'start' => $stk->format('H:i'),
-                        'end'   => $l->logged_at->format('H:i'),
+                        'start' => $breakStart->format('H:i'),
+                        'end'   => $log->logged_at->format('H:i'),
                     ];
-                    $stk = null;
+                    $breakStart = null;
                 }
             }
 

@@ -43,13 +43,13 @@ class StaffAttendanceController extends Controller
 
         /* ---------- ③ 勤怠＋ログ＋申請ヘッダ ---------- */
         $attendances = Attendance::with([
-            'timeLogs' => fn($q) => $q->orderBy('logged_at'),
+            'timeLogs' => fn($query) => $query->orderBy('logged_at'),
             'correctionRequests:id,attendance_id,status,created_at',
         ])
             ->where('user_id', $staff->id)
             ->whereBetween('work_date', [$startOfMonth, $endOfMonth])
             ->get()
-            ->keyBy(fn($a) => $a->work_date->format('Y-m-d'));
+            ->keyBy(fn($attendanceRecord) => $attendanceRecord->work_date->format('Y-m-d'));
 
         /* ---------- ④ 月内ループで行データ生成 ---------- */
         $attendanceData = [];
@@ -74,13 +74,13 @@ class StaffAttendanceController extends Controller
                 // ── 確定ログへ絞り込み
                 $baseLogs = $attendance->timeLogs
                     ->filter(
-                        fn(TimeLog $l) =>
-                        is_null($l->correction_request_id) ||
-                            optional($l->correctionRequest)->status === CorrectionRequest::STATUS_APPROVED
+                        fn(TimeLog $logEntry) =>
+                        is_null($logEntry->correction_request_id) ||
+                            optional($logEntry->correctionRequest)->status === CorrectionRequest::STATUS_APPROVED
                     )
                     ->when(
                         $cutLine,
-                        fn($col) => $col->filter(fn(TimeLog $l) => $l->created_at >= $cutLine)
+                        fn($logCollection) => $logCollection->filter(fn(TimeLog $logEntry) => $logEntry->created_at >= $cutLine)
                     )
                     ->values();
 
@@ -93,13 +93,13 @@ class StaffAttendanceController extends Controller
 
                 // ── 休憩合計
                 $breakSec = 0;
-                $stk = null;
-                foreach ($baseLogs as $l) {
-                    if ($l->type === 'break_start') {
-                        $stk = $l->logged_at;
-                    } elseif ($l->type === 'break_end' && $stk) {
-                        $breakSec += $stk->diffInSeconds($l->logged_at);
-                        $stk = null;
+                $breakStart = null;
+                foreach ($baseLogs as $logEntry) {
+                    if ($logEntry->type === 'break_start') {
+                        $breakStart = $logEntry->logged_at;
+                    } elseif ($logEntry->type === 'break_end' && $breakStart) {
+                        $breakSec += $breakStart->diffInSeconds($logEntry->logged_at);
+                        $breakStart = null;
                     }
                 }
                 $breakStr = $breakSec ? gmdate('G:i', $breakSec) : '';
@@ -151,13 +151,13 @@ class StaffAttendanceController extends Controller
 
         /* ---------- 3. 勤怠＋ログ＋申請ヘッダ ---------- */
         $attendances = Attendance::with([
-                'timeLogs' => fn($q) => $q->orderBy('logged_at'),
+                'timeLogs' => fn($query) => $query->orderBy('logged_at'),
                 'correctionRequests:id,attendance_id,status,created_at',
             ])
             ->where('user_id', $staff->id)
             ->whereBetween('work_date', [$startOfMonth, $endOfMonth])
             ->get()
-            ->keyBy(fn($a) => $a->work_date->format('Y-m-d'));
+            ->keyBy(fn($attendanceRecord) => $attendanceRecord->work_date->format('Y-m-d'));
 
         /* ---------- 4. ダウンロードストリーム ---------- */
         $fileName = "{$staff->name}_{$baseDate->format('Ym')}_attendance.csv";
@@ -188,12 +188,12 @@ class StaffAttendanceController extends Controller
                         ->first()?->created_at;
 
                     $logs = $attendance->timeLogs
-                        ->filter(fn(TimeLog $l) =>
-                            is_null($l->correction_request_id) ||
-                            optional($l->correctionRequest)->status === CorrectionRequest::STATUS_APPROVED
+                        ->filter(fn(TimeLog $logEntry) =>
+                            is_null($logEntry->correction_request_id) ||
+                            optional($logEntry->correctionRequest)->status === CorrectionRequest::STATUS_APPROVED
                         )
                         ->when($cutLine,
-                            fn($col) => $col->filter(fn(TimeLog $l) => $l->created_at >= $cutLine)
+                            fn($logCollection) => $logCollection->filter(fn(TimeLog $logEntry) => $logEntry->created_at >= $cutLine)
                         );
 
                     $firstIn = $logs->firstWhere('type', 'clock_in');
@@ -203,12 +203,12 @@ class StaffAttendanceController extends Controller
                     $end   = $lastOut?->logged_at->format('H:i') ?? '';
 
                     // 休憩計算
-                    $breakSec = 0; $stk = null;
-                    foreach ($logs as $l) {
-                        if ($l->type === 'break_start')       $stk = $l->logged_at;
-                        elseif ($l->type === 'break_end' && $stk) {
-                            $breakSec += $stk->diffInSeconds($l->logged_at);
-                            $stk = null;
+                    $breakSec = 0; $breakStart = null;
+                    foreach ($logs as $logEntry) {
+                        if ($logEntry->type === 'break_start')       $breakStart = $logEntry->logged_at;
+                        elseif ($logEntry->type === 'break_end' && $breakStart) {
+                            $breakSec += $breakStart->diffInSeconds($logEntry->logged_at);
+                            $breakStart = null;
                         }
                     }
                     $breakStr = $breakSec ? gmdate('G:i', $breakSec) : '';
