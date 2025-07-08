@@ -82,7 +82,11 @@
                     </div>
 
                     {{-- ─ 動的 休憩欄 ─ --}}
-                    <div id="break-sections"></div>
+                    <div
+                        id="break-sections"
+                        data-initial-breaks='@json(old('breaks', $breaks ?? []))'
+                        data-is-readonly='@json(!empty($pendingRequest))'
+                    ></div>
 
                     {{-- ─ 備考 ─ --}}
                     <div class="border-b border-gray-200 py-4 px-6 grid grid-cols-1 sm:grid-cols-[9rem_1fr] gap-x-10">
@@ -133,6 +137,7 @@
                 const workDate = new Date("{{ $workDate->format('Y-m-d') }}");
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
+                workDate.setHours(0, 0, 0, 0);
                 if (workDate > today) {
                     const confirmed = confirm('未来の日付に対して勤怠登録を行おうとしています。\nこのまま続行してもよろしいですか？');
                     if (!confirmed) {
@@ -143,73 +148,6 @@
         });
     </script>
 
-    {{-- ───── JS：休憩行の動的追加 ───── --}}
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.getElementById('break-sections');
-            const initialBreaks = @json(old('breaks', $breaks ?? []));
-            const isReadonly = @json(!empty($pendingRequest));
-
-            /* テンプレ行 ---------- */
-            const makeRow = idx => {
-                const row = document.createElement('div');
-                row.className =
-                    'border-b border-gray-200 py-4 px-6 grid grid-cols-1 sm:grid-cols-[9rem_1fr] gap-x-10';
-                row.innerHTML = `
-            <div class="text-gray-500 font-semibold whitespace-nowrap flex items-center">
-                ${idx === 0 ? '休憩' : `休憩${idx + 1}`}
-            </div>
-            <div class="w-full sm:w-[17rem] flex flex-col sm:flex-row gap-2 sm:gap-6 font-bold">
-                <input type="time" name="breaks[${idx}][start]"
-                       class="break-start border rounded px-2 py-1 w-full sm:w-32 text-center"
-                       ${isReadonly ? 'readonly' : ''}>
-                <span class="self-center">〜</span>
-                <input type="time" name="breaks[${idx}][end]"
-                       class="break-end border rounded px-2 py-1 w-full sm:w-32 text-center"
-                       ${isReadonly ? 'readonly' : ''}>
-            </div>`;
-                return row;
-            };
-
-            /* 既存表示 ---------- */
-            initialBreaks.forEach((v, i) => {
-                const r = makeRow(i);
-                r.querySelector('.break-start').value = v.start ?? '';
-                r.querySelector('.break-end').value = v.end ?? '';
-                container.appendChild(r);
-            });
-            if (container.children.length === 0) container.appendChild(makeRow(0));
-
-            /* 行整理 ---------- */
-            const renumber = () => {
-                [...container.children].forEach((row, i) => {
-                    row.querySelector('.text-gray-500').textContent = i === 0 ? '休憩' : `休憩${i + 1}`;
-                    row.querySelector('.break-start').name = `breaks[${i}][start]`;
-                    row.querySelector('.break-end').name = `breaks[${i}][end]`;
-                });
-            };
-
-            const tidy = () => {
-                /* 途中の空行削除（末尾除く） */
-                for (let i = container.children.length - 2; i >= 0; i--) {
-                    const row = container.children[i];
-                    if (!row.querySelector('.break-start').value &&
-                        !row.querySelector('.break-end').value) {
-                        row.remove();
-                    }
-                }
-                /* 末尾が入力済みなら空行を追加 */
-                const last = container.lastElementChild;
-                if (last && last.querySelector('.break-start').value &&
-                    last.querySelector('.break-end').value) {
-                    container.appendChild(makeRow(container.children.length));
-                }
-                renumber();
-            };
-
-            if (!isReadonly) {
-                container.addEventListener('input', tidy);
-            }
-        });
-    </script>
+    {{-- ───── JS：休憩行の動的追加（Vite経由で共通JSを読み込み） ───── --}}
+    @vite(['resources/js/app.js'])
 @endsection
