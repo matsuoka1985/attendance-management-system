@@ -227,6 +227,7 @@ class StampCorrectionRequestController extends Controller
         // 5. 差分リスト
         $diffs = $this->makeDiffs($base, $preview);
 
+
         // 6. 新しい申請（今回の申請より後に作成された）を取得
         $newerRequests = $attendance
             ? $attendance->correctionRequests()

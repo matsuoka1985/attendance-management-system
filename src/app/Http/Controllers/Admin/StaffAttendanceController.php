@@ -105,8 +105,8 @@ class StaffAttendanceController extends Controller
                 $breakStr = $breakSec ? gmdate('G:i', $breakSec) : '';
 
                 // ── 労働合計
-                if ($firstIn && $lastOut) {
-                    $totalSec = max(0, $firstIn->logged_at->diffInSeconds($lastOut->logged_at) - $breakSec);
+                if ($firstIn) {
+                    $totalSec = max(0, $firstIn->logged_at->diffInSeconds($lastOut?$lastOut->logged_at:now()) - $breakSec);
                     $workStr  = gmdate('G:i', $totalSec);
                 }
             }
