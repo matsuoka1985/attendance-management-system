@@ -29,7 +29,7 @@ cd attendance-management-system
 docker compose up -d --build
 ```
 
-### 3\.  PHPコンテナへのアクセス
+### 3\.  PHPコンテナへアクセス
 
 PHPコンテナのシェルに入るには、以下のコマンドを使用します。
 
@@ -39,7 +39,7 @@ docker compose exec php bash
 
 ### 4\. 初期セットアップ
 
-以下のコマンドでcomposer installによるvendorディレクトリの作成、.envファイルの作成、APP_KEYの生成、マイグレーション、シーディングが一括で実行できます。
+phpコンテナにログインした状態において以下のコマンドを実行することでcomposer installによるvendorディレクトリの作成、.envファイルの作成、APP_KEYの生成、マイグレーション、シーディングが一括で実行できます。
 ```bash
 make setup
 ```
