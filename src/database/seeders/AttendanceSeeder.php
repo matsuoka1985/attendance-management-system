@@ -14,27 +14,27 @@ class AttendanceSeeder extends Seeder
 
     public function run(): void
     {
-        $end   = Carbon::yesterday()->startOfDay();
-        $start = $end->copy()->subMonthsNoOverflow(6);
+        $endDate   = Carbon::yesterday()->startOfDay();
+        $startDate = $endDate->copy()->subMonthsNoOverflow(6);
 
-        User::where('role', 'user')->get()->each(function (User $user) use ($start, $end) {
+        User::where('role', 'user')->get()->each(function (User $user) use ($startDate, $endDate) {
 
-            $date = $start->copy();
+            $currentDate = $startDate->copy();
 
-            while ($date->lte($end)) {
+            while ($currentDate->lte($endDate)) {
 
                 // 土日は 95 % スキップ
-                if ($date->isWeekend() && rand(0, 100) < self::WEEKEND_SKIP_RATE * 100) {
-                    $date->addDay();
+                if ($currentDate->isWeekend() && rand(0, 100) < self::WEEKEND_SKIP_RATE * 100) {
+                    $currentDate->addDay();
                     continue;
                 }
 
                 Attendance::firstOrCreate([
                     'user_id'   => $user->id,
-                    'work_date' => $date->toDateString(),
+                    'work_date' => $currentDate->toDateString(),
                 ]);
 
-                $date->addDay();
+                $currentDate->addDay();
             }
         });
     }
