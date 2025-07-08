@@ -33,8 +33,8 @@ class AuthenticatedSessionController extends Controller
                 Auth::guard('admin')->logout();
                 return back()->withErrors(['email' => 'ログイン情報が登録されていません。']);
             }
-
-            return redirect()->intended(route('admin.attendance.index'));
+            //intendedを削除済み。
+            return redirect()->route('admin.attendance.index');
         }
 
         return back()->withErrors(['email' => 'ログイン情報が登録されていません。']);

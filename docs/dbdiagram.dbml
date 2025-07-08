@@ -24,7 +24,7 @@ Table attendances {
   updated_at datetime                       [not null]
 
   Indexes {
-    user_id, work_date [unique]
+    user_id work_date [unique]
   }
 }
 //修正申請用の個々の打刻ログテーブルも作成しようと思ったが、以下のtime_logsテーブルとカラムが重複するので
@@ -37,11 +37,11 @@ Table time_logs {
      - 修正申請ドラフト : correction_request_id が付くまでは NULL を許容
      → DB では nullable とし、下記 CHECK で「片方は必ず埋まる」ことを担保
   */
-  attendance_id  bigint [ref: > attendances.id, nullable, note:'UNSIGNED, ON DELETE SET NULL']
+  attendance_id  bigint [ref: > attendances.id,  note:'UNSIGNED, ON DELETE SET NULL']
 
   logged_at      datetime [not null]                                       // 打刻時刻
   type           enum('clock_in','clock_out','break_start','break_end') [not null] // 打刻種別
-  correction_request_id bigint [ref: > correction_requests.id, nullable, note:'UNSIGNED'] // 修正申請のドラフトなら非NULL
+  correction_request_id bigint [ref: > correction_requests.id,  note:'UNSIGNED'] // 修正申請のドラフトなら非NULL
   created_at     datetime [not null]
   updated_at     datetime [not null]
 

@@ -43,7 +43,9 @@
                     focus:outline-none focus:ring-2 focus:ring-black"
                     required autocomplete="new-password">
                 @error('password')
-                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                    @if (!str_contains($message, '一致しません'))
+                        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                    @endif
                 @enderror
             </div>
 
@@ -54,6 +56,11 @@
                     class="block w-full rounded-lg border border-black px-4 py-2
                     focus:outline-none focus:ring-2 focus:ring-black"
                     required>
+                @error('password')
+                    @if (str_contains($message, '一致しません'))
+                        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                    @endif
+                @enderror
             </div>
 
             {{-- 登録ボタン --}}
