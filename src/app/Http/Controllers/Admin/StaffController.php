@@ -15,12 +15,9 @@ class StaffController extends Controller
      */
     public function index(Request $request)
     {
-        /** スタッフ一覧を取得（管理者を除外したい場合は適宜 where を追加） */
+        /** スタッフ一覧を取得 */
         $staffs = User::query()
-            ->when(
-                Schema::hasColumn('users', 'is_admin'),
-                fn($query) => $query->where('is_admin', 0)
-            )
+            ->where('role', '!=', 'admin')
             ->orderBy(
                 Schema::hasColumn('users', 'name_kana') ? 'name_kana' : 'name'
             )

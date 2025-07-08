@@ -96,28 +96,28 @@ Route::post('/login', [LoginController::class, 'store'])->name('login');
 // ──────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->group(function () {
     // 出勤登録画面 *認可済み
-    Route::get('/attendance', [AttendanceStampController::class, 'create'])
+    Route::get('/attendance',[AttendanceStampController::class, 'create'])
         ->name('attendance.stamp');
 
     // 出勤打刻処理
-    Route::post('/attendance/start', [AttendanceStampController::class, 'start'])
+    Route::post('/attendance/start',[AttendanceStampController::class, 'start'])
         ->name('attendance.start');
 
     // 休憩開始処理
-    Route::post('/break/start', [AttendanceStampController::class, 'startBreak'])
+    Route::post('/break/start',[AttendanceStampController::class, 'startBreak'])
         ->name('break.start');
 
     // 休憩終了処理
-    Route::post('/break/end', [AttendanceStampController::class, 'endBreak'])
+    Route::post('/break/end',[AttendanceStampController::class, 'endBreak'])
         ->name('break.end');
 
     //退勤処理
-    Route::post('/attendance/end', [AttendanceStampController::class, 'end'])
+    Route::post('/attendance/end',[AttendanceStampController::class, 'end'])
         ->name('attendance.end');
 
 
     // 勤怠一覧
-    Route::get('/attendance/list', [UserAttendanceController::class, 'index'])
+    Route::get('/attendance/list',[UserAttendanceController::class, 'index'])
         ->name('attendance.index');
 
 
@@ -126,18 +126,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
     //　勤怠詳細
-    Route::get('/attendance/{id}', [UserAttendanceController::class, 'show'])
+    Route::get('/attendance/{id}',[UserAttendanceController::class, 'show'])
         ->name('attendance.show');
 
 
     // 申請一覧
-    Route::get('/stamp_correction_request/list',  [UserStampCorrectionRequestController::class, 'index'])
+    Route::get('/stamp_correction_request/list',[UserStampCorrectionRequestController::class, 'index'])
         ->name('request.index');
 
     // 修正申請処理
     Route::post('/store', [UserStampCorrectionRequestController::class, 'store'])->name('request.store');
 });
-
 
 
 // ──────────────────────────────────────────────────────────────

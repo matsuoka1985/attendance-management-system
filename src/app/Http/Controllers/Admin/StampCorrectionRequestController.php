@@ -11,7 +11,6 @@ use App\Models\CorrectionRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use App\Models\User;
 
 class StampCorrectionRequestController extends Controller
 {
