@@ -16,6 +16,9 @@ setup:
 		npm install --loglevel=error; \
 	fi
 
+	# ─── Vite Build ───
+	npm run build
+
 	# ─── .env & APP_KEY ───
 	@if [ ! -f .env ]; then \
 		cp .env.example .env; \
