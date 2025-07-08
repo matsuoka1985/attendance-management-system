@@ -16,6 +16,9 @@ setup:
 		npm install --loglevel=error; \
 	fi
 
+	# ─── Vite Build ───
+	npm run build
+
 	# ─── .env & APP_KEY ───
 	@if [ ! -f .env ]; then \
 		cp .env.example .env; \
@@ -44,7 +47,6 @@ setup:
 	mysql --ssl=0 -h$(DB_HOST) -uroot -p$(DB_ROOT_PASSWORD) \
 		-e "CREATE DATABASE IF NOT EXISTS \`demo_test\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 	php artisan migrate --env=testing --force
-	php artisan db:seed --env=testing --force
 	php artisan config:clear
 
 	# ─── storage link & permissions ───
