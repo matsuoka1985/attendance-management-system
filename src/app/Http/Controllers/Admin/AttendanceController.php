@@ -85,8 +85,8 @@ class AttendanceController extends Controller
                 'start' => $fmtTime($start),
                 'end'   => $fmtTime($end),
                 'break' => $fmtDur($breakSec),
-                'total' => ($start && $end)
-                    ? $fmtDur(max(0, $start->diffInSeconds($end) - $breakSec))
+                'total' => ($start)
+                    ? $fmtDur(max(0, $start->diffInSeconds($end?$end:now()) - $breakSec))
                     : '',
             ];
         });
