@@ -95,8 +95,9 @@ class AttendanceController extends Controller
                 $breakStr = $breakSec ? gmdate('G:i', $breakSec) : '';
 
                 /* ⑤ 労働合計 ---------------------------- */
-                if ($firstIn && $lastOut) {
-                    $totalSec = max(0, $firstIn->logged_at->diffInSeconds($lastOut->logged_at) - $breakSec);
+                if ($firstIn) {
+                    $endTimeCarbon = $lastOut?->logged_at ?? now();
+                    $totalSec = max(0, $firstIn->logged_at->diffInSeconds($endTimeCarbon) - $breakSec);
                     $workStr  = gmdate('G:i', $totalSec);
                 }
             }
