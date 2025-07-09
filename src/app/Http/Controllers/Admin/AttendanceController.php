@@ -169,10 +169,6 @@ class AttendanceController extends Controller
     }
 
 
-
-    /**
-     * Display the specified resource.
-     */
     /* ---------- 詳細画面 ---------- */
     public function show(int $id)
     {

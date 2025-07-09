@@ -68,7 +68,7 @@ class AttendanceStampController extends Controller
         return back()->with('success', '出勤しました。');
     }
 
-    // テストで利用したい処理本体
+    // 勤怠開始処理本体
     public function performClockIn(): Attendance
     {
         $user  = Auth::user();
@@ -193,18 +193,11 @@ class AttendanceStampController extends Controller
         return $attendance;
     }
 
-    /* ───────── ヘルパ ───────── */
 
-    private function todayAttendanceOrFail(): Attendance
-    {
-        $user  = Auth::user();
-        $today = Carbon::today();
 
-        return Attendance::where('user_id', $user->id)
-            ->whereDate('work_date', $today)
-            ->firstOrFail();
-    }
-
+    /**
+     * 承認された修正申請がある場合は、その修正申請よりも前にあった打刻ログを除外して打刻データを取得
+     */
     private function filteredTimeLogs(Attendance $attendance)
     {
         $correction = $attendance->correctionRequests()

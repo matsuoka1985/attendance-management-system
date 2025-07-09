@@ -6,24 +6,21 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Carbon\CarbonPeriod;
 use App\Models\Attendance;
 use App\Models\CorrectionRequest;
 use App\Models\TimeLog;
 
 class AttendanceController extends Controller
 {
+
     /**
-     * Display a listing of the resource.
-     */
-    /**
-     * 月次の勤怠一覧（確定ログのみを集計）
+     * 月次の勤怠一覧
      */
     public function index(Request $request)
     {
         $user = Auth::user();
 
-        /* ---------- 1. 対象月 ---------- */
+        /* ---------- 1. 対象月 ---------- */ //クエリパラメータあればそのクエリパラメータに則って月を取得、なければ現在の月を取得
         $baseDate      = $request->filled('month')
             ? Carbon::createFromFormat('Y-m', $request->month)
             : now();
@@ -184,7 +181,6 @@ class AttendanceController extends Controller
                     $idx++;
                 }
             }
-
         }
 
         /* ---------- View ---------- */
@@ -355,5 +351,4 @@ class AttendanceController extends Controller
             'diffs'             => $diffs,
         ]);
     }
-
 }
