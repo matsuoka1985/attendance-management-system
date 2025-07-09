@@ -114,8 +114,8 @@ class AdminApprovalTest extends DuskTestCase
         // 一覧で検証したい行情報をここに詰める
         $approvedRows = collect();
 
-        $staffs->each(function (User $staff, int $idx) use ($baseDay, $admin, $approvedRows) {
-            $workDay   = $baseDay->copy()->addDays($idx);      // 6/1, 6/2, 6/3 …
+        $staffs->each(function (User $staff, int $index) use ($baseDay, $admin, $approvedRows) {
+            $workDay   = $baseDay->copy()->addDays($index);      // 6/1, 6/2, 6/3 …
             $applyDate = $workDay->copy()->addDay();           // 申請日は勤務日の翌日
 
             // 勤怠

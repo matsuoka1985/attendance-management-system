@@ -62,7 +62,7 @@ class AttendanceLogHelper
 
         return $keys->map(function ($key) use ($confirmed, $pending) {
 
-            [$type, $idx] = array_pad(explode('#', $key), 2, 0);
+            [$type, $index] = array_pad(explode('#', $key), 2, 0);
 
             $old = $confirmed[$key] ?? null;
             $new = $pending[$key]   ?? null;
@@ -74,8 +74,8 @@ class AttendanceLogHelper
             $label = match ($type) {
                 'clock_in'     => '出勤',
                 'clock_out'    => '退勤',
-                'break_start'  => '休憩' . ($idx + 1) . '開始',
-                'break_end'    => '休憩' . ($idx + 1) . '終了',
+                'break_start'  => '休憩' . ($index + 1) . '開始',
+                'break_end'    => '休憩' . ($index + 1) . '終了',
                 default        => $type,
             };
 

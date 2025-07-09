@@ -38,7 +38,7 @@ class AttendanceController extends Controller
             ->where('user_id', $user->id)
             ->whereBetween('work_date', [$startOfMonth, $endOfMonth])
             ->get()
-            ->keyBy(fn($a) => $a->work_date->format('Y-m-d'));
+            ->keyBy(fn($attendance) => $attendance->work_date->format('Y-m-d'));
 
         /* ---------- 3. 月内ループで表示用配列 ---------- */
         $attendanceData = [];
@@ -169,16 +169,16 @@ class AttendanceController extends Controller
 
             /* 休憩ペア */
             $breakStart = null;
-            $idx = 1;
+            $index = 1;
             foreach ($logs as $log) {
                 if ($log->type === 'break_start') {
                     $breakStart = $log->logged_at;
                 } elseif ($log->type === 'break_end' && $breakStart) {
                     $start = $breakStart->format('H:i');
                     $end = $log->logged_at->format('H:i');
-                    $diffs[] = ['label' => "休憩{$idx}", 'old' => '—', 'new' => "{$start}〜{$end}"];
+                    $diffs[] = ['label' => "休憩{$index}", 'old' => '—', 'new' => "{$start}〜{$end}"];
                     $breakStart = null;
-                    $idx++;
+                    $index++;
                 }
             }
         }

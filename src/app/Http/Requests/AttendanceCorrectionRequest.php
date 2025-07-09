@@ -48,49 +48,49 @@ class AttendanceCorrectionRequest extends FormRequest
             }
 
             /* 3) 休憩毎の判定 */
-            foreach ($breaks as $i => $bk) {
-                $s = $bk['start'] ?? null;
-                $e = $bk['end']   ?? null;
+            foreach ($breaks as $index => $breakEntry) {
+                $breakStartTime = $breakEntry['start'] ?? null;
+                $breakEndTime   = $breakEntry['end']   ?? null;
 
                 // 終了のみ入力
-                if (! $s && $e) {
-                    $validator->errors()->add("breaks.$i.start", '休憩終了を入力する場合は休憩開始も入力してください。');
+                if (! $breakStartTime && $breakEndTime) {
+                    $validator->errors()->add("breaks.$index.start", '休憩終了を入力する場合は休憩開始も入力してください。');
                 }
 
                 // 退勤後はペア必須
-                if ($mode === 'finished' && ($s xor $e)) {
-                    $validator->errors()->add("breaks.$i.start", '退勤後は休憩開始・終了を両方入力してください。');
+                if ($mode === 'finished' && ($breakStartTime xor $breakEndTime)) {
+                    $validator->errors()->add("breaks.$index.start", '退勤後は休憩開始・終了を両方入力してください。');
                 }
 
                 // 開始 ≦ 終了
-                if ($s && $e && $s > $e) {
-                    $validator->errors()->add("breaks.$i.end", '休憩終了は開始より後にしてください。');
+                if ($breakStartTime && $breakEndTime && $breakStartTime > $breakEndTime) {
+                    $validator->errors()->add("breaks.$index.end", '休憩終了は開始より後にしてください。');
                 }
 
                 // 勤務時間外
-                if ($s && ($s < $startAt || ($endAt && $s > $endAt))) {
-                    $validator->errors()->add("breaks.$i.start", '休憩時間が勤務時間外です');
+                if ($breakStartTime && ($breakStartTime < $startAt || ($endAt && $breakStartTime > $endAt))) {
+                    $validator->errors()->add("breaks.$index.start", '休憩時間が勤務時間外です');
                 }
-                if ($e && ($e < $startAt || ($endAt && $e > $endAt))) {
-                    $validator->errors()->add("breaks.$i.end", '休憩時間が勤務時間外です');
+                if ($breakEndTime && ($breakEndTime < $startAt || ($endAt && $breakEndTime > $endAt))) {
+                    $validator->errors()->add("breaks.$index.end", '休憩時間が勤務時間外です');
                 }
 
                 // 連続休憩重複
-                if ($i > 0) {
-                    $prevEnd = $breaks[$i - 1]['end'] ?? null;
-                    if ($s && $prevEnd && $s < $prevEnd) {
-                        $validator->errors()->add("breaks.$i.start", '前の休憩と重複しています。');
+                if ($index > 0) {
+                    $prevEnd = $breaks[$index - 1]['end'] ?? null;
+                    if ($breakStartTime && $prevEnd && $breakStartTime < $prevEnd) {
+                        $validator->errors()->add("breaks.$index.start", '前の休憩と重複しています。');
                     }
                 }
             }
 
             /* 4) 歯抜け行チェック（入力がある行は必ず前詰め） */
-            $filledIdx = collect($breaks)
-                ->filter(fn($v) => ($v['start'] ?? null) || ($v['end'] ?? null))
+            $filledIndex = collect($breaks)
+                ->filter(fn($breakEntry) => ($breakEntry['start'] ?? null) || ($breakEntry['end'] ?? null))
                 ->keys()
                 ->values();                             // 0,1,2…のはず
-            foreach ($filledIdx as $pos => $idx) {
-                if ($idx !== $pos) {
+            foreach ($filledIndex as  $expectedIndex  => $index) {
+                if ($index !==  $expectedIndex) {
                     $validator->errors()->add('breaks', '休憩入力に空行があります。前の行を埋めてください。');
                     break;
                 }

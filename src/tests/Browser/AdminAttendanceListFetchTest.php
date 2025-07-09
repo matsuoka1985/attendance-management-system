@@ -89,31 +89,31 @@ class AdminAttendanceListFetchTest extends DuskTestCase
             ->values();               // 0,1,2 の連番に整形
 
         /* ── 2 日分の勤怠＋ログ（休憩 1 h 付き）を投入 ── */
-        foreach ([$yesterday, $today] as $d) {
-            foreach ($staffs as $u) {
-                $att = Attendance::factory()
-                    ->for($u)
-                    ->create(['work_date' => $d]);
+        foreach ([$yesterday, $today] as $targetDate) {
+            foreach ($staffs as $staffUser) {
+                $attendance = Attendance::factory()
+                    ->for($staffUser)
+                    ->create(['work_date' => $targetDate]);
 
                 TimeLog::insert([
                     [
-                        'attendance_id' => $att->id,
-                        'logged_at'     => $d->copy()->setTime(9, 0),
+                        'attendance_id' => $attendance->id,
+                        'logged_at'     => $targetDate->copy()->setTime(9, 0),
                         'type'          => 'clock_in',
                     ],
                     [
-                        'attendance_id' => $att->id,
-                        'logged_at'     => $d->copy()->setTime(12, 0),
+                        'attendance_id' => $attendance->id,
+                        'logged_at'     => $targetDate->copy()->setTime(12, 0),
                         'type'          => 'break_start',
                     ],
                     [
-                        'attendance_id' => $att->id,
-                        'logged_at'     => $d->copy()->setTime(13, 0),
+                        'attendance_id' => $attendance->id,
+                        'logged_at'     => $targetDate->copy()->setTime(13, 0),
                         'type'          => 'break_end',
                     ],
                     [
-                        'attendance_id' => $att->id,
-                        'logged_at'     => $d->copy()->setTime(18, 0),
+                        'attendance_id' => $attendance->id,
+                        'logged_at'     => $targetDate->copy()->setTime(18, 0),
                         'type'          => 'clock_out',
                     ],
                 ]);
@@ -136,12 +136,12 @@ class AdminAttendanceListFetchTest extends DuskTestCase
                 ->waitForText($yesterday->isoFormat('YYYY年M月D日の勤怠'), 5);
 
             /* ② 各行（id 昇順）で列値を検証 */
-            foreach ($staffs as $idx => $u) {
+            foreach ($staffs as $index => $staffUser) {
 
                 // tr:nth-child(n) … 名前 = 1 列目
-                $row = "table tbody tr:nth-child(" . ($idx + 1) . ")";
+                $row = "table tbody tr:nth-child(" . ($index + 1) . ")";
 
-                $browser->assertSeeIn("$row td:nth-child(1)", $u->name)  // 名前
+                $browser->assertSeeIn("$row td:nth-child(1)", $staffUser->name)  // 名前
                     ->assertSeeIn("$row td:nth-child(2)", '09:00')   // 出勤
                     ->assertSeeIn("$row td:nth-child(3)", '18:00')   // 退勤
                     ->assertSeeIn("$row td:nth-child(4)", '1:00')    // 休憩
@@ -175,29 +175,29 @@ class AdminAttendanceListFetchTest extends DuskTestCase
         ]);
 
         foreach ($staffs as $staff) {
-            $att = Attendance::factory()->create([
+            $attendance = Attendance::factory()->create([
                 'user_id'   => $staff->id,
                 'work_date' => $yesterday->toDateString(),
             ]);
 
             TimeLog::insert([
                 [ // 出勤 09:00
-                    'attendance_id' => $att->id,
+                    'attendance_id' => $attendance->id,
                     'logged_at'     => $yesterday->copy()->setTime(9, 0),
                     'type'          => 'clock_in',
                 ],
                 [ // 休憩開始 12:00
-                    'attendance_id' => $att->id,
+                    'attendance_id' => $attendance->id,
                     'logged_at'     => $yesterday->copy()->setTime(12, 0),
                     'type'          => 'break_start',
                 ],
                 [ // 休憩終了 13:00
-                    'attendance_id' => $att->id,
+                    'attendance_id' => $attendance->id,
                     'logged_at'     => $yesterday->copy()->setTime(13, 0),
                     'type'          => 'break_end',
                 ],
                 [ // 退勤 18:00
-                    'attendance_id' => $att->id,
+                    'attendance_id' => $attendance->id,
                     'logged_at'     => $yesterday->copy()->setTime(18, 0),
                     'type'          => 'clock_out',
                 ],
