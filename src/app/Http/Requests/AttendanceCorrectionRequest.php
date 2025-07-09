@@ -4,8 +4,6 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
-use App\Models\Attendance;
-use Carbon\Carbon;
 
 class AttendanceCorrectionRequest extends FormRequest
 {
