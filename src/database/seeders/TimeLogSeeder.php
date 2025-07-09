@@ -11,7 +11,7 @@ class TimeLogSeeder extends Seeder
 {
     public function run(): void
     {
-        Attendance::whereHas('user', fn($q) => $q->where('role', '!=', 'admin'))
+        Attendance::whereHas('user', fn($query) => $query->where('role', '!=', 'admin'))
             ->get()
             ->each(function (Attendance $attendance) {
 

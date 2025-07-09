@@ -21,11 +21,11 @@
                 <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md mb-6">
                     <p class="font-semibold text-blue-700 mb-1">申請中の変更</p>
                     <ul class="text-sm text-blue-800 leading-6 space-y-0.5">
-                        @foreach ($diffs as $d)
+                        @foreach ($diffs as $diffEntry)
                             <li>
-                                {{ $d['label'] }} :
-                                <span class="line-through text-gray-400 mr-1">{{ $d['old'] ?? '—' }}</span>
-                                <span class="text-red-600 font-semibold">→ {{ $d['new'] ?? '—' }}</span>
+                                {{ $diffEntry['label'] }} :
+                                <span class="line-through text-gray-400 mr-1">{{ $diffEntry['old'] ?? '—' }}</span>
+                                <span class="text-red-600 font-semibold">→ {{ $diffEntry['new'] ?? '—' }}</span>
                             </li>
                         @endforeach
                     </ul>

@@ -29,23 +29,23 @@ class AdminAttendanceListTest extends DuskTestCase
 
         // 前月の平日すべてに 09-18 (休憩 12-13) を生成
         $expectedRows = [];
-        for ($d = $prevMonth->copy(); $d->lte($prevMonth->copy()->endOfMonth()); $d->addDay()) {
-            if ($d->isWeekend()) continue;
+        for ($currentDate = $prevMonth->copy(); $currentDate->lte($prevMonth->copy()->endOfMonth()); $currentDate->addDay()) {
+            if ($currentDate->isWeekend()) continue;
 
             $att = Attendance::factory()->create([
                 'user_id'   => $staff->id,
-                'work_date' => $d->toDateString(),
+                'work_date' => $currentDate->toDateString(),
             ]);
 
             TimeLog::factory()->createMany([
-                ['attendance_id' => $att->id, 'logged_at' => $d->copy()->setTime(9, 0),  'type' => 'clock_in'],
-                ['attendance_id' => $att->id, 'logged_at' => $d->copy()->setTime(12, 0), 'type' => 'break_start'],
-                ['attendance_id' => $att->id, 'logged_at' => $d->copy()->setTime(13, 0), 'type' => 'break_end'],
-                ['attendance_id' => $att->id, 'logged_at' => $d->copy()->setTime(18, 0), 'type' => 'clock_out'],
+                ['attendance_id' => $att->id, 'logged_at' => $currentDate->copy()->setTime(9, 0),  'type' => 'clock_in'],
+                ['attendance_id' => $att->id, 'logged_at' => $currentDate->copy()->setTime(12, 0), 'type' => 'break_start'],
+                ['attendance_id' => $att->id, 'logged_at' => $currentDate->copy()->setTime(13, 0), 'type' => 'break_end'],
+                ['attendance_id' => $att->id, 'logged_at' => $currentDate->copy()->setTime(18, 0), 'type' => 'clock_out'],
             ]);
 
             $expectedRows[] = [
-                'label' => $d->isoFormat('MM/DD(ddd)'),
+                'label' => $currentDate->isoFormat('MM/DD(ddd)'),
                 'start' => '09:00',
                 'end'   => '18:00',
                 'break' => '1:00',

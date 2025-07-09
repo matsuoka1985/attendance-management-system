@@ -77,7 +77,7 @@ class AttendanceController extends Controller
 
             /* ⑤ フォーマット -------------------------- */
             $fmtTime = fn($dt) => $dt?->format('H:i') ?? '--:--';
-            $fmtDur  = fn($s)  => $s ? gmdate('G:i', $s) : '';
+            $fmtDur  = fn($seconds)  => $seconds ? gmdate('G:i', $seconds) : '';
 
             return [
                 'id'    => $attendanceItem->id,

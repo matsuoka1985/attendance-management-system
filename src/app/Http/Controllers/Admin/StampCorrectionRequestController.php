@@ -133,12 +133,12 @@ class StampCorrectionRequestController extends Controller
             ]);
 
             // 休憩
-            foreach ($request->breaks ?? [] as $bk) {
-                foreach (['start' => 'break_start', 'end' => 'break_end'] as $k => $type) {
-                    if ($t = $bk[$k] ?? null) {
+            foreach ($request->breaks ?? [] as $breakPair) {
+                foreach (['start' => 'break_start', 'end' => 'break_end'] as $breakKey => $type) {
+                    if ($breakTime = $breakPair[$breakKey] ?? null) {
                         TimeLog::create([
                             'attendance_id'         => $attendance->id,
-                            'logged_at'             => $logDate->copy()->setTimeFromTimeString($t),
+                            'logged_at'             => $logDate->copy()->setTimeFromTimeString($breakTime),
                             'type'                  => $type,
                             'correction_request_id' => $correction->id,
                         ]);
@@ -271,13 +271,13 @@ class StampCorrectionRequestController extends Controller
         ];
 
         $stk = null;
-        foreach ($logs as $l) {
-            if ($l->type === 'break_start') {
-                $stk = $l->logged_at;
-            } elseif ($l->type === 'break_end' && $stk) {
+        foreach ($logs as $timeLog) {
+            if ($timeLog->type === 'break_start') {
+                $stk = $timeLog->logged_at;
+            } elseif ($timeLog->type === 'break_end' && $stk) {
                 $schema['breaks'][] = [
                     'start' => $stk->format('H:i'),
-                    'end'   => $l->logged_at->format('H:i'),
+                    'end'   => $timeLog->logged_at->format('H:i'),
                 ];
                 $stk = null;
             }
@@ -306,14 +306,14 @@ class StampCorrectionRequestController extends Controller
 
         $max = max(count($base['breaks']), count($preview['breaks']));
         for ($i = 0; $i < $max; $i++) {
-            $b  = $base['breaks'][$i]     ?? ['start' => null, 'end' => null];
-            $p  = $preview['breaks'][$i]  ?? ['start' => null, 'end' => null];
+            $baseBreak    = $base['breaks'][$i]    ?? ['start' => null, 'end' => null];
+            $previewBreak = $preview['breaks'][$i] ?? ['start' => null, 'end' => null];
 
-            if ($b['start'] !== $p['start']) {
-                $diffs[] = ['label' => '休憩' . ($i + 1) . '開始', 'old' => $b['start'], 'new' => $p['start']];
+            if ($baseBreak['start'] !== $previewBreak['start']) {
+                $diffs[] = ['label' => '休憩' . ($i + 1) . '開始', 'old' => $baseBreak['start'], 'new' => $previewBreak['start']];
             }
-            if ($b['end'] !== $p['end']) {
-                $diffs[] = ['label' => '休憩' . ($i + 1) . '終了', 'old' => $b['end'], 'new' => $p['end']];
+            if ($baseBreak['end'] !== $previewBreak['end']) {
+                $diffs[] = ['label' => '休憩' . ($i + 1) . '終了', 'old' => $baseBreak['end'], 'new' => $previewBreak['end']];
             }
         }
 

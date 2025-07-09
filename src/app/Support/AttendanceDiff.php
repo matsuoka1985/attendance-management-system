@@ -23,21 +23,21 @@ class AttendanceDiff
         $keys   = array_unique(array_merge(array_keys($baseMap), array_keys($pendingMap)));
         $result = [];
 
-        foreach ($keys as $k) {
-            $old = $baseMap[$k]    ?? null;
-            $new = $pendingMap[$k] ?? null;
-            if ($old === $new) {
+        foreach ($keys as $key) {
+            $oldValue = $baseMap[$key]    ?? null;
+            $newValue = $pendingMap[$key] ?? null;
+            if ($oldValue === $newValue) {
                 continue; // 変更なし
             }
 
             $label = match (true) {
-                $k === 'start_at'       => '出勤',
-                $k === 'end_at'         => '退勤',
-                str_starts_with($k, 'break_start#') => '休憩' . substr($k, 12, 1) . '開始',
-                str_starts_with($k, 'break_end#')   => '休憩' . substr($k, 10, 1) . '終了',
+                $key === 'start_at'       => '出勤',
+                $key === 'end_at'         => '退勤',
+                str_starts_with($key, 'break_start#') => '休憩' . substr($key, 12, 1) . '開始',
+                str_starts_with($key, 'break_end#')   => '休憩' . substr($key, 10, 1) . '終了',
             };
 
-            $result[] = compact('label', 'old', 'new');
+            $result[] = compact('label', 'oldValue', 'newValue');
         }
 
         return $result;
@@ -47,23 +47,23 @@ class AttendanceDiff
     private static function toMap(Collection $logs): array
     {
         $map = [];
-        $idx = 1;
+        $index = 1;
 
-        foreach ($logs as $l) {
-            $t = $l->logged_at->format('H:i');
-            switch ($l->type) {
+        foreach ($logs as $logEntry) {
+            $formattedTime = $logEntry->logged_at->format('H:i');
+            switch ($logEntry->type) {
                 case 'clock_in':
-                    $map['start_at']         = $t;
+                    $map['start_at']         = $formattedTime;
                     break;
                 case 'clock_out':
-                    $map['end_at']           = $t;
+                    $map['end_at']           = $formattedTime;
                     break;
                 case 'break_start':
-                    $map["break_start#{$idx}"] = $t;
+                    $map["break_start#{$index}"] = $formattedTime;
                     break;
                 case 'break_end':
-                    $map["break_end#{$idx}"]   = $t;
-                    $idx++;
+                    $map["break_end#{$index}"]   = $formattedTime;
+                    $index++;
                     break;
             }
         }

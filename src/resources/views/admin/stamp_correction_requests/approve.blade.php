@@ -45,11 +45,11 @@
                         {{ $isPending ? '申請中の変更' : '申請による変更' }}
                     </p>
                     <ul class="text-sm text-blue-800 leading-6 space-y-0.5">
-                        @foreach ($diffs as $d)
+                        @foreach ($diffs as $diffEntry)
                             <li>
-                                {{ $d['label'] }} :
-                                <span class="line-through text-gray-400 mr-1">{{ $d['old'] ?: '—' }}</span>
-                                <span class="text-red-600 font-semibold">→ {{ $d['new'] ?: '—' }}</span>
+                                {{ $diffEntry['label'] }} :
+                                <span class="line-through text-gray-400 mr-1">{{ $diffEntry['old'] ?: '—' }}</span>
+                                <span class="text-red-600 font-semibold">→ {{ $diffEntry['new'] ?: '—' }}</span>
                             </li>
                         @endforeach
                     </ul>
@@ -61,11 +61,11 @@
                 <div class="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
                     <p class="font-semibold text-yellow-700 mb-2">この勤怠には後続の修正申請があります：</p>
                     <ul class="text-sm space-y-1">
-                        @foreach ($newerRequests as $r)
+                        @foreach ($newerRequests as $request)
                             <li>
-                                <a href="{{ route('admin.request.approve', $r->id) }}" class="text-blue-700 underline">
-                                    {{ $r->created_at->format('Y/m/d H:i') }} に提出された
-                                    {{ $r->status === 'pending' ? '未承認の' : '承認済みの' }}修正申請
+                                <a href="{{ route('admin.request.approve', $request->id) }}" class="text-blue-700 underline">
+                                    {{ $request->created_at->format('Y/m/d H:i') }} に提出された
+                                    {{ $request->status === 'pending' ? '未承認の' : '承認済みの' }}修正申請
                                 </a>
                             </li>
                         @endforeach
@@ -110,36 +110,36 @@
                                 </div>
                             </div>
 
-                            @php($d = $meta['data'])
+                            @php($tabData = $meta['data'])
 
                             {{-- 出勤・退勤 --}}
                             <div
                                 class="border-b border-gray-200 py-4 px-6 grid grid-cols-1 sm:grid-cols-[9rem_1fr] gap-x-10">
                                 <div class="text-gray-500 font-semibold whitespace-nowrap flex items-center">出勤・退勤</div>
                                 <div class="w-full sm:w-[17rem] flex flex-col sm:flex-row gap-2 sm:gap-6 font-bold">
-                                    <input type="time" value="{{ $d['start'] }}" disabled
+                                    <input type="time" value="{{ $tabData['start'] }}" disabled
                                         class="border rounded px-2 py-1 w-full sm:w-32 text-center">
                                     <span class="self-center">〜</span>
-                                    <input type="time" value="{{ $d['end'] }}" disabled
+                                    <input type="time" value="{{ $tabData['end'] }}" disabled
                                         class="border rounded px-2 py-1 w-full sm:w-32 text-center">
                                 </div>
                             </div>
 
                             {{-- 休憩行 --}}
-                            @foreach ($d['breaks'] as $i => $bk)
-                                @if ($i === count($d['breaks']) - 1 && $bk['start'] === '' && $bk['end'] === '')
+                            @foreach ($tabData['breaks'] as $breakIndex => $breakData)
+                                @if ($breakIndex === count($tabData['breaks']) - 1 && $breakData['start'] === '' && $breakData['end'] === '')
                                     @continue
                                 @endif
                                 <div
                                     class="border-b border-gray-200 py-4 px-6 grid grid-cols-1 sm:grid-cols-[9rem_1fr] gap-x-10">
                                     <div class="text-gray-500 font-semibold whitespace-nowrap flex items-center">
-                                        {{ $i === 0 ? '休憩' : '休憩' . ($i + 1) }}
+                                        {{ $breakIndex === 0 ? '休憩' : '休憩' . ($breakIndex + 1) }}
                                     </div>
                                     <div class="w-full sm:w-[17rem] flex flex-col sm:flex-row gap-2 sm:gap-6 font-bold">
-                                        <input type="time" value="{{ $bk['start'] }}" disabled
+                                        <input type="time" value="{{ $breakData['start'] }}" disabled
                                             class="border rounded px-2 py-1 w-full sm:w-32 text-center">
                                         <span class="self-center">〜</span>
-                                        <input type="time" value="{{ $bk['end'] }}" disabled
+                                        <input type="time" value="{{ $breakData['end'] }}" disabled
                                             class="border rounded px-2 py-1 w-full sm:w-32 text-center">
                                     </div>
                                 </div>

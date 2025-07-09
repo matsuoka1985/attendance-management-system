@@ -84,8 +84,8 @@ class User extends Authenticatable implements MustVerifyEmail
         $logs = $attendance->timeLogs()
             ->when(
                 $approvedRequest,
-                fn($q) =>
-                $q->where('created_at', '>=', $approvedRequest->created_at)
+                fn($query) =>
+                $query->where('created_at', '>=', $approvedRequest->created_at)
             )
             ->orderBy('logged_at')
             ->get();

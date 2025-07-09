@@ -22,7 +22,7 @@ class AttendanceLogFetcher
         /* ─ 最新 approved 申請を探す ─ */
         $latest = CorrectionRequest::where('user_id',  $userId)
             ->where('status',     CorrectionRequest::STATUS_APPROVED)
-            ->whereHas('timeLogs', fn ($q) => $q->whereDate('logged_at', $workDate))
+            ->whereHas('timeLogs', fn ($query) => $query->whereDate('logged_at', $workDate))
             ->latest('created_at')          // created_at を基準にする！
             ->first();
 
@@ -31,11 +31,11 @@ class AttendanceLogFetcher
 
         /* ─ 対象ログ ─ */
         return TimeLog::query()
-            ->whereHas('attendance', fn ($q) => $q
+            ->whereHas('attendance', fn ($query) => $query
                 ->where('user_id', $userId)
                 ->whereDate('work_date', $workDate)
             )
-            ->when($cutLine, fn ($q) => $q->where('created_at', '>=', $cutLine))
+            ->when($cutLine, fn ($query) => $query->where('created_at', '>=', $cutLine))
             ->orderBy('logged_at')
             ->get();
     }

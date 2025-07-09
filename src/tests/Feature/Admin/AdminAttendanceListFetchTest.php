@@ -36,9 +36,9 @@ class AdminAttendanceListFetchTest extends TestCase
         $today = Carbon::today();
 
         // 各ユーザーに “09-18 勤務・12-13 休憩” の勤怠を付与
-        foreach ($users as $u) {
+        foreach ($users as $user) {
             $att = Attendance::factory()
-                ->for($u)
+                ->for($user)
                 ->create(['work_date' => $today]);
 
             // clock-in
@@ -76,9 +76,9 @@ class AdminAttendanceListFetchTest extends TestCase
         $response->assertSeeText($today->format('Y年n月j日'));
 
         // ── 3) 各ユーザーの勤怠行が期待どおり表示されていること ─────
-        foreach ($users as $u) {
+        foreach ($users as $user) {
             $response
-                ->assertSeeText($u->name)   // 名前
+                ->assertSeeText($user->name)   // 名前
                 ->assertSeeText('09:00')    // 出勤
                 ->assertSeeText('18:00')    // 退勤
                 ->assertSeeText('1:00')     // 休憩
