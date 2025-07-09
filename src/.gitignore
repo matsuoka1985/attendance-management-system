@@ -9,6 +9,7 @@
 .env
 .env.backup
 .env.testing
+.env.dusk.local
 .env.production
 .phpactor.json
 .phpunit.result.cache
