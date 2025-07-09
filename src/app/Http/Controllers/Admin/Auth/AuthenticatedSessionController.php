@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\LoginRequest;
 
-//自作コントローラー。メソッドの中身についてはのちに修正する必要あり。
+//自作コントローラー
 class AuthenticatedSessionController extends Controller
 {
     /* ログインフォーム */
@@ -49,7 +49,7 @@ class AuthenticatedSessionController extends Controller
     /* ログアウト */
     public function destroy(Request $request)
     {
-        Auth::guard('admin')->logout();           
+        Auth::guard('admin')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
