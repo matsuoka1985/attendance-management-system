@@ -78,7 +78,9 @@
                     </div>
 
                     <!-- 動的な休憩入力欄 -->
-                    <div id="break-sections"></div>
+                    <div id="break-sections"
+                         data-initial-breaks='@json(old("breaks", $breaks ?? []))'
+                         data-is-readonly="{{ $hasPendingRequest ? 'true' : 'false' }}"></div>
 
                     <!-- 備考 -->
                     <div class="border-b border-gray-200 py-4 px-6 grid grid-cols-1 sm:grid-cols-[9rem_1fr] gap-x-10">
@@ -106,79 +108,7 @@
         </div>
     </div>
 
-
-
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.getElementById('break-sections');
-            const initialBreaks = @json(old('breaks', $breaks ?? []));
-
-            /* テンプレ -------------------------------------------------------- */
-            const makeRow = idx => {
-                const row = document.createElement('div');
-                row.className =
-                    'border-b border-gray-200 py-4 px-6 grid grid-cols-1 sm:grid-cols-[9rem_1fr] gap-x-10';
-                row.innerHTML = `
-                    <div class="text-gray-500 font-semibold whitespace-nowrap flex items-center">
-                        ${idx === 0 ? '休憩' : `休憩${idx + 1}`}
-                    </div>
-                    <div class="w-full sm:w-[17rem] flex flex-col sm:flex-row gap-2 sm:gap-6 font-bold">
-                        <input type="time" name="breaks[${idx}][start]"
-                               class="break-start border rounded px-2 py-1 w-full sm:w-32 text-center"
-                               ${@json($hasPendingRequest) ? 'readonly' : ''}>
-                        <span class="self-center">〜</span>
-                        <input type="time" name="breaks[${idx}][end]"
-                               class="break-end border rounded px-2 py-1 w-full sm:w-32 text-center"
-                               ${@json($hasPendingRequest) ? 'readonly' : ''}>
-                    </div>`;
-                return row;
-            };
-
-            /* 既存データ ------------------------------------------------------ */
-            initialBreaks.forEach((v, i) => {
-                const r = makeRow(i);
-                r.querySelector('.break-start').value = v.start ?? '';
-                r.querySelector('.break-end').value = v.end ?? '';
-                container.appendChild(r);
-            });
-            if (container.children.length === 0) container.appendChild(makeRow(0));
-
-            /* 名前ラベル振り直し -------------------------------------------- */
-            const renumber = () => {
-                [...container.children].forEach((row, i) => {
-                    row.querySelector('.text-gray-500').textContent = i === 0 ? '休憩' : `休憩${i + 1}`;
-                    row.querySelector('.break-start').name = `breaks[${i}][start]`;
-                    row.querySelector('.break-end').name = `breaks[${i}][end]`;
-                });
-            };
-
-            /* 行整理 ---------------------------------------------------------- */
-            const tidy = () => {
-                // 1) 途中にある “完全空行” を削除（最後の行は残す）
-                for (let i = container.children.length - 2; i >= 0; i--) {
-                    const row = container.children[i];
-                    const s = row.querySelector('.break-start').value;
-                    const e = row.querySelector('.break-end').value;
-                    if (!s && !e) row.remove();
-                }
-
-                // 2) 末尾行が両方入っていたら空行を 1 本追加
-                const last = container.lastElementChild;
-                if (last) {
-                    const s = last.querySelector('.break-start').value;
-                    const e = last.querySelector('.break-end').value;
-                    if (s && e) container.appendChild(makeRow(container.children.length));
-                }
-
-                // 3) ラベル・name 再採番
-                renumber();
-            };
-
-            /* 監視：入力ごとに整理（行を壊さない） --------------------------- */
-            container.addEventListener('input', tidy);
-        });
-    </script>
+    @vite('resources/js/app.js')
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -187,11 +117,8 @@
                 const dateStr = form.querySelector('input[name="work_date"]')?.value;
                 if (!dateStr) return;
 
-                const workDate = new Date(dateStr);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-
-                if (workDate > today) {
+                const todayStr = new Date().toISOString().slice(0, 10);
+                if (dateStr > todayStr) {
                     const proceed = confirm('未来の日付に対して勤怠登録申請をしようとしています。本当によろしいですか？');
                     if (!proceed) {
                         e.preventDefault();

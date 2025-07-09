@@ -18,9 +18,7 @@ class TimeLog extends Model
     public const TYPE_BREAK_START = 'break_start';
     public const TYPE_BREAK_END   = 'break_end';
 
-    /*--------------------------------------------------------------
-    | 一括代入を許可する属性
-    |--------------------------------------------------------------*/
+
     protected $fillable = [
         'attendance_id',
         'logged_at',

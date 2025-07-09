@@ -11,7 +11,6 @@ use App\Models\CorrectionRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use App\Models\User;
 
 class StampCorrectionRequestController extends Controller
 {
@@ -27,7 +26,7 @@ class StampCorrectionRequestController extends Controller
             'attendance:id,user_id,work_date',
             'attendance.user:id,name',
             'user:id,name',
-            'timeLogs' => fn($q) => $q->orderBy('logged_at'),
+            'timeLogs' => fn($query) => $query->orderBy('logged_at'),
         ])
             ->where('status', CorrectionRequest::STATUS_PENDING)
             ->latest('created_at')                           // 申請日時の降順
@@ -48,10 +47,10 @@ class StampCorrectionRequestController extends Controller
             'attendance.user:id,name',
             'user:id,name',
             'reviewer:id,name',
-            'timeLogs' => fn($q) => $q->orderBy('logged_at'),
+            'timeLogs' => fn($query) => $query->orderBy('logged_at'),
         ])
             ->where('status', CorrectionRequest::STATUS_APPROVED)
-            ->whereHas('user', fn($q) => $q->where('role', '!=', 'admin')) // 追加: 管理者作成を除外
+            ->whereHas('user', fn($query) => $query->where('role', '!=', 'admin')) // 追加: 管理者作成を除外
             ->latest('created_at')                           // ★ 申請日時の降順で統一
             ->get()
             ->each(function (CorrectionRequest $req) {
@@ -177,7 +176,7 @@ class StampCorrectionRequestController extends Controller
         $correction = CorrectionRequest::with([
             'user:id,name',
             'attendance.user:id,name',
-            'timeLogs' => fn($q) => $q->orderBy('logged_at'),
+            'timeLogs' => fn($query) => $query->orderBy('logged_at'),
         ])->findOrFail($correctionRequestId);
 
         // 2. 基本情報
@@ -197,16 +196,16 @@ class StampCorrectionRequestController extends Controller
                 ->value('created_at');
 
             $baseLogs = TimeLog::where('attendance_id', $attendance->id)
-                ->where(function ($q) {
-                    $q->whereNull('correction_request_id')
+                ->where(function ($query) {
+                    $query->whereNull('correction_request_id')
                         ->orWhereHas(
                             'correctionRequest',
-                            fn($qr) =>
-                            $qr->where('status', CorrectionRequest::STATUS_APPROVED)
+                            fn($correctionQuery) =>
+                            $correctionQuery->where('status', CorrectionRequest::STATUS_APPROVED)
                         );
                 })
                 // 前回承認以降
-                ->when($prevApprovedAt, fn($q) => $q->where('created_at', '>=', $prevApprovedAt))
+                ->when($prevApprovedAt, fn($query) => $query->where('created_at', '>=', $prevApprovedAt))
                 // 今回申請より前まで
                 ->where('created_at', '<', $correction->created_at)
                 ->orderBy('logged_at')
@@ -226,6 +225,7 @@ class StampCorrectionRequestController extends Controller
 
         // 5. 差分リスト
         $diffs = $this->makeDiffs($base, $preview);
+
 
         // 6. 新しい申請（今回の申請より後に作成された）を取得
         $newerRequests = $attendance
@@ -333,7 +333,7 @@ class StampCorrectionRequestController extends Controller
 
         /* ───── 1. 対象申請を取得（要 pending） ───── */
         $correction = CorrectionRequest::with([
-            'timeLogs'   => fn($q) => $q->orderBy('logged_at'),
+            'timeLogs'   => fn($query) => $query->orderBy('logged_at'),
             'attendance',           // まだ null のこともある
             'user:id,name'          // 申請者
         ])

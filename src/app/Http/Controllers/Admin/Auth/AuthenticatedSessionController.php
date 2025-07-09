@@ -33,8 +33,14 @@ class AuthenticatedSessionController extends Controller
                 Auth::guard('admin')->logout();
                 return back()->withErrors(['email' => 'ログイン情報が登録されていません。']);
             }
+            // --- intended に login が含まれるなら無視する ---
+            $intended = session('url.intended');
 
-            return redirect()->intended(route('admin.attendance.index'));
+            if ($intended && str_contains($intended, 'login')) {
+                return redirect()->route('admin.attendance.index');
+            }
+
+            return redirect()->to($intended ?? route('admin.attendance.index'));
         }
 
         return back()->withErrors(['email' => 'ログイン情報が登録されていません。']);
@@ -43,7 +49,7 @@ class AuthenticatedSessionController extends Controller
     /* ログアウト */
     public function destroy(Request $request)
     {
-        Auth::guard('admin')->logout();           // ▼ ここだけ変更
+        Auth::guard('admin')->logout();           
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

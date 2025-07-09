@@ -31,7 +31,7 @@ class StampCorrectionRequestController extends Controller
         $baseWith = [
             'attendance:id,work_date,user_id',
             'attendance.user:id,name',
-            'timeLogs' => fn($q) => $q->orderBy('logged_at')->limit(1),
+            'timeLogs' => fn($query) => $query->orderBy('logged_at')->limit(1),
         ];
 
         /* ───────── 承認待ち ───────── */
@@ -44,8 +44,8 @@ class StampCorrectionRequestController extends Controller
         /* ───────── 2. 承認済み ───────── */
         $approvedRequests = CorrectionRequest::with($baseWith + ['reviewer:id,name'])
             ->where('user_id', $user->id)
-            ->whereIn('id', function ($q) {
-                $q->selectRaw('MAX(id)')
+            ->whereIn('id', function ($subQuery) {
+                $subQuery->selectRaw('MAX(id)')
                   ->from('correction_requests')
                   ->groupBy('attendance_id');
             })
@@ -57,11 +57,11 @@ class StampCorrectionRequestController extends Controller
         /* ── 対象日（target_date）を付与 ──
        ① 勤怠があれば  work_date
        ② 無ければ      draft の先頭打刻日 */
-        $addTarget = function ($col) {
-            return $col->each(function ($r) {
-                $r->target_date =
-                    $r->attendance?->work_date
-                    ?? optional($r->timeLogs->first())->logged_at?->toDateString();
+        $addTarget = function ($collection) {
+            return $collection->each(function ($requestItem) {
+                $requestItem->target_date =
+                    $requestItem->attendance?->work_date
+                    ?? optional($requestItem->timeLogs->first())->logged_at?->toDateString();
             });
         };
 
@@ -69,7 +69,7 @@ class StampCorrectionRequestController extends Controller
         $addTarget($approvedRequests);
 
         // 承認済み一覧でも申請日時（created_at）をビューで使いやすいように統一キーで渡す
-        $approvedRequests->each(fn ($r) => $r->applied_at = $r->created_at);
+        $approvedRequests->each(fn ($approvedRequest) => $approvedRequest->applied_at = $approvedRequest->created_at);
 
         return view(
             'user.stamp_correction_requests.index',
@@ -116,23 +116,23 @@ class StampCorrectionRequestController extends Controller
             ]);
 
             // ---- 休憩 ----
-            foreach ($request->breaks ?? [] as $bk) {
-                $s = $bk['start'] ?? null;
-                $e = $bk['end']   ?? null;
+            foreach ($request->breaks ?? [] as $breakEntry) {
+                $startTime = $breakEntry['start'] ?? null;
+                $endTime   = $breakEntry['end']   ?? null;
 
                 // 勤務中モードでは片方だけでも挿入可
-                if ($s) {
+                if ($startTime) {
                     TimeLog::create([
                         'attendance_id'         => $attendance?->id,
-                        'logged_at'             => $workDate->copy()->setTimeFromTimeString($s),
+                        'logged_at'             => $workDate->copy()->setTimeFromTimeString($startTime),
                         'type'                  => 'break_start',
                         'correction_request_id' => $correction->id,
                     ]);
                 }
-                if ($e) {
+                if ($endTime) {
                     TimeLog::create([
                         'attendance_id'         => $attendance?->id,
-                        'logged_at'             => $workDate->copy()->setTimeFromTimeString($e),
+                        'logged_at'             => $workDate->copy()->setTimeFromTimeString($endTime),
                         'type'                  => 'break_end',
                         'correction_request_id' => $correction->id,
                     ]);

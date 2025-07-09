@@ -68,7 +68,7 @@ class AttendanceStampController extends Controller
         return back()->with('success', '出勤しました。');
     }
 
-    // テストで利用したい処理本体
+    // 勤怠開始処理本体
     public function performClockIn(): Attendance
     {
         $user  = Auth::user();
@@ -116,8 +116,8 @@ class AttendanceStampController extends Controller
             throw new \RuntimeException('退勤後のため操作できません。');
         }
 
-        $last = $logs->last();
-        if ($last && $last->type === 'break_start') {
+        $lastLog = $logs->last();
+        if ($lastLog && $lastLog->type === 'break_start') {
             throw new \RuntimeException('すでに休憩中です。');
         }
 
@@ -145,8 +145,8 @@ class AttendanceStampController extends Controller
         $attendance = $this->resolveAttendanceForStamp();
         $logs = $this->filteredTimeLogs($attendance);
 
-        $last = $logs->last();
-        if (!$last || $last->type !== 'break_start') {
+        $lastLog = $logs->last();
+        if (!$lastLog || $lastLog->type !== 'break_start') {
             throw new \RuntimeException('休憩中ではありません。');
         }
 
@@ -175,13 +175,13 @@ class AttendanceStampController extends Controller
     {
         $attendance = $this->resolveAttendanceForStamp();
         $logs = $this->filteredTimeLogs($attendance);
-        $last = $logs->last();
+        $lastLog = $logs->last();
 
-        if ($last && $last->type === 'clock_out') {
+        if ($lastLog && $lastLog->type === 'clock_out') {
             throw new \RuntimeException('すでに退勤済みです。');
         }
 
-        if ($last && $last->type === 'break_start') {
+        if ($lastLog && $lastLog->type === 'break_start') {
             throw new \RuntimeException('休憩中は退勤できません。');
         }
 
@@ -193,18 +193,11 @@ class AttendanceStampController extends Controller
         return $attendance;
     }
 
-    /* ───────── ヘルパ ───────── */
 
-    private function todayAttendanceOrFail(): Attendance
-    {
-        $user  = Auth::user();
-        $today = Carbon::today();
 
-        return Attendance::where('user_id', $user->id)
-            ->whereDate('work_date', $today)
-            ->firstOrFail();
-    }
-
+    /**
+     * 承認された修正申請がある場合は、その修正申請よりも前にあった打刻ログを除外して打刻データを取得
+     */
     private function filteredTimeLogs(Attendance $attendance)
     {
         $correction = $attendance->correctionRequests()
@@ -212,13 +205,13 @@ class AttendanceStampController extends Controller
             ->latest('created_at')
             ->first();
 
-        $query = $attendance->timeLogs()->orderBy('logged_at');
+        $timeLogQuery = $attendance->timeLogs()->orderBy('logged_at');
 
         if ($correction) {
-            $query->where('created_at', '>=', $correction->created_at);
+            $timeLogQuery->where('created_at', '>=', $correction->created_at);
         }
 
-        return $query->get();
+        return $timeLogQuery->get();
     }
 
     /**
@@ -228,8 +221,8 @@ class AttendanceStampController extends Controller
     private function resolveAttendanceForStamp(): Attendance
     {
         $user  = Auth::user();
-        for ($i = 0; $i < 7; $i++) {
-            $date = Carbon::today()->subDays($i);
+        for ($dayOffset = 0; $dayOffset < 7; $dayOffset++) {
+            $date = Carbon::today()->subDays($dayOffset);
             $attendance = Attendance::where('user_id', $user->id)
                 ->whereDate('work_date', $date)
                 ->first();

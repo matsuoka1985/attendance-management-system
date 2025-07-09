@@ -31,7 +31,7 @@ class AttendanceController extends Controller
         /* ---------- 2. 当日の勤怠＋ログ＋申請ヘッダ ---------- */
         $attendances = Attendance::with([
             'user:id,name',
-            'timeLogs' => fn($q) => $q->orderBy('logged_at'),
+            'timeLogs' => fn($query) => $query->orderBy('logged_at'),
             'correctionRequests:id,attendance_id,status,created_at',
         ])
             ->whereDate('work_date', $date)
@@ -39,23 +39,23 @@ class AttendanceController extends Controller
             ->get();
 
         /* ---------- 3. 一覧行 ---------- */
-        $rows = $attendances->map(function (Attendance $att) {
+        $rows = $attendances->map(function (Attendance $attendanceItem) {
 
             /* ① 最新 approved の cutLine ------------- */
-            $cutLine = $att->correctionRequests
+            $cutLine = $attendanceItem->correctionRequests
                 ->where('status', CorrectionRequest::STATUS_APPROVED)
                 ->sortByDesc('created_at')
                 ->first()?->created_at;          // Carbon|null
 
             /* ② show() と同じルールで baseLogs 絞る ------ */
-            $baseLogs = $att->timeLogs
-                ->filter(function (TimeLog $l) {
-                    return is_null($l->correction_request_id) ||
-                        optional($l->correctionRequest)->status === CorrectionRequest::STATUS_APPROVED;
+            $baseLogs = $attendanceItem->timeLogs
+                ->filter(function (TimeLog $logEntry) {
+                    return is_null($logEntry->correction_request_id) ||
+                        optional($logEntry->correctionRequest)->status === CorrectionRequest::STATUS_APPROVED;
                 })
                 ->when($cutLine, function ($col) use ($cutLine) {
                     // Collection::filter で cutLine 以降に限定
-                    return $col->filter(fn(TimeLog $l) => $l->created_at >= $cutLine);
+                    return $col->filter(fn(TimeLog $logEntry) => $logEntry->created_at >= $cutLine);
                 })
                 ->values();   // インデックス振り直し
 
@@ -65,13 +65,13 @@ class AttendanceController extends Controller
 
             /* ④ 休憩合計 ------------------------------ */
             $breakSec = 0;
-            $stk = null;
-            foreach ($baseLogs as $l) {
-                if ($l->type === 'break_start') {
-                    $stk = $l->logged_at;
-                } elseif ($l->type === 'break_end' && $stk) {
-                    $breakSec += $stk->diffInSeconds($l->logged_at);
-                    $stk = null;
+            $breakStart = null;
+            foreach ($baseLogs as $logEntry) {
+                if ($logEntry->type === 'break_start') {
+                    $breakStart = $logEntry->logged_at;
+                } elseif ($logEntry->type === 'break_end' && $breakStart) {
+                    $breakSec += $breakStart->diffInSeconds($logEntry->logged_at);
+                    $breakStart = null;
                 }
             }
 
@@ -80,13 +80,13 @@ class AttendanceController extends Controller
             $fmtDur  = fn($s)  => $s ? gmdate('G:i', $s) : '';
 
             return [
-                'id'    => $att->id,
-                'name'  => $att->user->name,
+                'id'    => $attendanceItem->id,
+                'name'  => $attendanceItem->user->name,
                 'start' => $fmtTime($start),
                 'end'   => $fmtTime($end),
                 'break' => $fmtDur($breakSec),
-                'total' => ($start && $end)
-                    ? $fmtDur(max(0, $start->diffInSeconds($end) - $breakSec))
+                'total' => ($start)
+                    ? $fmtDur(max(0, $start->diffInSeconds($end ? $end : now()) - $breakSec))
                     : '',
             ];
         });
@@ -130,10 +130,10 @@ class AttendanceController extends Controller
         }
 
         /* ---------- 4.  最新 pending 申請（あれば） ---------- */
-        $pending = CorrectionRequest::with(['timeLogs' => fn($q) => $q->orderBy('logged_at')])
+        $pending = CorrectionRequest::with(['timeLogs' => fn($query) => $query->orderBy('logged_at')])
             ->where('user_id', $staff->id)
             ->where('status',  CorrectionRequest::STATUS_PENDING)
-            ->whereHas('timeLogs', fn($q) => $q->whereDate('logged_at', $workDate))
+            ->whereHas('timeLogs', fn($query) => $query->whereDate('logged_at', $workDate))
             ->latest('created_at')
             ->first();
 
@@ -169,10 +169,6 @@ class AttendanceController extends Controller
     }
 
 
-
-    /**
-     * Display the specified resource.
-     */
     /* ---------- 詳細画面 ---------- */
     public function show(int $id)
     {
@@ -192,18 +188,18 @@ class AttendanceController extends Controller
             ->value('created_at');                   // null → approved が 1 件も無い
 
         $baseLogs = TimeLog::where('attendance_id', $attendance->id)
-            ->where(function ($q) {
-                $q->whereNull('correction_request_id')           // 実運用
+            ->where(function ($query) {
+                $query->whereNull('correction_request_id')           // 実運用
                     ->orWhereHas(
                         'correctionRequest',
-                        fn($qr) =>
-                        $qr->where('status', CorrectionRequest::STATUS_APPROVED)
+                        fn($correctionQuery) =>
+                        $correctionQuery->where('status', CorrectionRequest::STATUS_APPROVED)
                     );                                             // or approved 申請ログ
             })
             ->when(
                 $cutLine,
-                fn($q) =>
-                $q->where('created_at', '>=', $cutLine)
+                fn($query) =>
+                $query->where('created_at', '>=', $cutLine)
             )
             ->orderBy('logged_at')
             ->get();
@@ -211,7 +207,7 @@ class AttendanceController extends Controller
         /* -------------------------------------------------------------
      * 2. 直近 1 件の pending 申請（あれば）
      * ----------------------------------------------------------- */
-        $pending = CorrectionRequest::with(['timeLogs' => fn($q) => $q->orderBy('logged_at')])
+        $pending = CorrectionRequest::with(['timeLogs' => fn($query) => $query->orderBy('logged_at')])
             ->where('attendance_id', $attendance->id)
             ->where('status',  CorrectionRequest::STATUS_PENDING)
             ->latest('created_at')
@@ -266,5 +262,4 @@ class AttendanceController extends Controller
             'pendingRequest'   => $pending,
         ]);
     }
-
 }

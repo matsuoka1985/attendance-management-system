@@ -74,8 +74,17 @@ php artisan dusk
   * **phpMyAdmin (データベース管理GUIツール UI)**: [http://localhost:8080](http://localhost:8080)
 
 
+### テスト用アカウント情報
 
+以下の認証データによって管理者アカウントでログインできます：
 
+- メールアドレス: `admin@example.com`
+- パスワード: `password`
+
+以下の認証データによってスタッフアカウントでログインできます：
+
+- メールアドレス: `dev@example.com`
+- パスワード: `password`
 
 
 ---
@@ -92,4 +101,4 @@ php artisan dusk
 ## ER図
 
 
-<!-- ![ER図](erd.png) -->
+![ER図](erd.png)
